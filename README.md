@@ -4,7 +4,9 @@ A trading-education landing page with three Facebook Reel players, a community e
 
 ## Lead capture
 
-The popup collects name, email, phone, country and optional city. Contact consent is required and its version and timestamp are recorded. It opens through Get started / Get community access, and once per session after 18 seconds if another dialog or video player is not open.
+The popup collects name, email, phone, country and optional city. Contact consent is required and its version and timestamp are recorded. It opens automatically after 10 seconds, or immediately through Get started / Get community access, a video play control or broker registration. If the page is hidden or a policy dialog is open at the deadline, it opens when the page becomes visible or the policy dialog closes.
+
+The enquiry must save successfully before the popup can be dismissed and the visitor can continue. Escape and backdrop clicks do not dismiss an unsaved form. Privacy details remain accessible. The confirmation offers Continue to website and the registration guide. A non-personal session flag prevents repeat gating after a successful save in the same tab; contact details are never stored in browser storage. This is a front-end enquiry flow, not an authentication or content-security boundary.
 
 Submissions are saved in Cloudflare D1. The confirmation screen appears after a successful server save and provides the registration guide and Facebook follow-up link. Broker approval and community access are separate checks. Submission requests use signed form tokens, same-origin validation, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
 

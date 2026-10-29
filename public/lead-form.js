@@ -15,7 +15,8 @@
   let requestId = newRequestId();
   let tokenPromise = null;
   let source = 'landing-page';
-  let submitted = false;
+  let submitted = preference('sky-lead-submitted') === '1';
+  let gateDue = false;
   function preference(key, value) {
     try { if (value !== undefined) sessionStorage.setItem(key, value); return sessionStorage.getItem(key); }
     catch { return null; }
@@ -27,25 +28,35 @@
     return value.token;
   }
   function openLead(origin) {
-    if (dialog.open) return;
+    if (submitted || dialog.open) return;
     source = origin;
     error.textContent = '';
-    if (!submitted) { tokenPromise = getToken(); tokenPromise.catch(() => {}); }
+    tokenPromise = getToken(); tokenPromise.catch(() => {});
     dialog.showModal();
-    preference('sky-lead-seen', '1');
-    if (origin !== 'landing:auto' && matchMedia('(min-width: 721px)').matches && !submitted) form.elements.name.focus();
+    if (origin === 'landing:auto') document.querySelector('#lead-title').focus({ preventScroll: true });
+    else if (matchMedia('(min-width: 721px)').matches) form.elements.name.focus();
   }
   document.querySelectorAll('[data-open-lead]').forEach(button => button.addEventListener('click', event => {
+    if (submitted) return;
     event.preventDefault();
     openLead('landing:cta');
   }));
-  document.querySelector('#lead-close').addEventListener('click', () => dialog.close());
+  // Starting a video or broker registration also requires a saved enquiry.
+  document.addEventListener('click', event => {
+    if (submitted || !(event.target instanceof Element)) return;
+    const action = event.target.closest('#play-video, .reel-load, .broker-link');
+    if (!action) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    openLead('landing:continue');
+  }, true);
+  document.querySelector('#lead-close').addEventListener('click', () => { if (submitted) dialog.close(); });
+  dialog.addEventListener('cancel', event => { if (!submitted) event.preventDefault(); });
   dialog.addEventListener('click', event => {
-    if (event.target !== dialog) return;
+    if (!submitted || event.target !== dialog) return;
     const box = dialog.getBoundingClientRect();
     if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
   });
-  document.querySelector('#lead-next-step').addEventListener('click', () => dialog.close());
+  document.querySelectorAll('[data-lead-continue]').forEach(link => link.addEventListener('click', () => { if (submitted) dialog.close(); }));
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (submit.disabled || !form.reportValidity()) return;
@@ -68,18 +79,25 @@
       preference('sky-lead-submitted', '1');
       form.reset(); requestId = newRequestId(); tokenPromise = null;
       formView.hidden = true; successView.hidden = false;
+      document.querySelector('#lead-close').hidden = false;
+      dialog.removeAttribute('closedby');
       dialog.removeAttribute('aria-labelledby');
+      dialog.removeAttribute('aria-describedby');
       dialog.setAttribute('aria-label', 'Enquiry saved — your Sky Team next steps');
       document.querySelector('#lead-next-step').focus();
     } catch (problem) {
+      tokenPromise = null;
       error.textContent = problem.message || 'Please try again or message Sky Team on Facebook.';
       error.scrollIntoView({ block: 'nearest' });
     } finally {
       submit.disabled = false;
-      submit.innerHTML = 'Get my next steps <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
+      submit.innerHTML = 'Save details &amp; continue <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
     }
   });
-  setTimeout(() => {
-    if (!preference('sky-lead-seen') && !preference('sky-lead-submitted') && document.visibilityState === 'visible' && !document.querySelector('dialog[open], .reel-frame iframe, #video-frame iframe')) openLead('landing:auto');
-  }, 18000);
+  function showTimedGate() {
+    if (gateDue && !submitted && document.visibilityState === 'visible' && !document.querySelector('dialog[open]')) openLead('landing:auto');
+  }
+  setTimeout(() => { gateDue = true; showTimedGate(); }, 10000);
+  document.addEventListener('visibilitychange', showTimedGate);
+  document.querySelectorAll('.policy-dialog').forEach(policy => policy.addEventListener('close', showTimedGate));
 })();
