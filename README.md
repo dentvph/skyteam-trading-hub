@@ -1,31 +1,63 @@
-# SkyTeam Trading Hub
+# Sky Team Trading Hub
 
-Premium static landing page with layered 3D-style candlestick charts, interactive educational scenarios, responsive layouts, and upcoming video topics.
+A trading-education landing page with three Facebook Reel players, a community enquiry popup and an owner-only lead manager. The website keeps the Sky Team branding, YouTube overview, Facebook contact links and VT Markets referral guide (code `eePfC6mw`).
 
-## Files
+## Lead capture
 
-- `index.html`: page text, sections, Facebook links, and video preview markup.
-- `premium.css`: premium design, responsive styles, and reduced-motion support.
-- `premium.js`: illustrative charts, scenario controls, topic selection, and pointer tilt.
+The optional popup collects name, email, phone, country and optional city. Contact consent is required only when submitting an enquiry, and its version and timestamp are recorded. It opens automatically after 10 seconds, or manually through Get started / Get community access. Visitors can close it with X, Escape, a backdrop click or Continue browsing. The Facebook page is directly accessible in the popup without submitting. Video playback, broker registration and browsing do not require an enquiry.
 
-Open `index.html` in a browser to view the page. Keep all three files in the same folder. No package installation or build step is required.
+The same browser remembers a successful enquiry for 30 days and a dismissed reminder for 24 hours. Only expiry timestamps are stored in localStorage, with a sessionStorage fallback; contact details are never stored in browser storage. Clearing site data or using another browser/device can show the reminder again. Manual enquiry controls remain available after dismissal. If storage is disabled, in-memory preferences still allow the visitor to browse. The automatic reminder waits while a policy dialog is open and does not interrupt an embedded video. The confirmation offers Continue to website, the registration guide, Facebook and Messenger.
 
-## Change links and content
+Submissions are saved in Cloudflare D1. The confirmation screen appears after a successful server save and provides the registration guide and Facebook follow-up link. Broker approval and community access are separate checks. Submission requests use signed form tokens, same-origin validation, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
 
-Open `index.html` on GitHub, choose Edit, make the change, and commit it. Replace every relevant `href="https://www.facebook.com/SkyTeamTradingHub"` to change the Facebook buttons. The `site-config` JSON is currently a reserved placeholder; changing it alone does not update the buttons or add videos.
+## Private CRM
 
-Video walkthroughs are marked coming soon. Topic buttons currently change preview titles; they do not play video. Real embed links and player markup must be added before advertising video availability. Do not paste passwords, access tokens, tracking secrets, or personal information into this public repository.
+Open `/crm` and sign in with the configured Sky Team owner account. The dashboard includes searchable contact records, location, timestamps, manual follow-up stages, private notes, permanent deletion with confirmation, and a CSV export of matching leads. Follow-up stages are New, Contacted, Registered, Joined and Archived.
 
-## Optional GitHub Pages publishing
+Authorization is enforced on the server for every CRM page, read, edit, delete and export. A visitor's access to the landing page does not grant access to lead records. Follow-ups are managed through the saved contact details.
 
-In repository Settings > Pages, select Deploy from a branch, choose `main` and `/(root)`, then Save. GitHub will show the published URL when deployment finishes. This repository upload alone does not enable Pages. Changes committed to the configured publishing source trigger updates once Pages is enabled.
+## Source layout
 
-Official guide: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+- `content/landing.html`: landing page and popup markup.
+- `public/`: branding, landing styles/scripts and CRM styles.
+- `app/route.ts`: serves the landing page.
+- `app/crm/`: protected CRM page and dashboard.
+- `app/api/leads/`: public enquiry token and submission routes.
+- `app/api/crm/`: protected lead management and export routes.
+- `lib/leads.ts`: validation, authorization, token, rate-limit and query helpers.
+- `db/schema.ts`, `drizzle/`: D1 schema and immutable generated migration history.
+- `.openai/hosting.json`: retained Site identity and logical DB binding.
 
-## Relationship to Sites
+## Development and deployment
 
-This repository contains a copy of the premium redesign. No automatic two-way synchronization with the original ChatGPT Sites project has been configured. GitHub changes do not update the original Sites URL automatically, and later Sites changes must be copied here separately.
+This is a Vinext/Cloudflare Worker project with a D1 database. It needs a server deployment; uploading a standalone HTML file or enabling static GitHub Pages does not run the CRM backend.
 
-## Before an ad campaign
+Use Node 22.13 or later and the pinned package manager declared in `package.json`. Install from `pnpm-lock.yaml`, then use `pnpm dev` or `pnpm build`. Configure the private runtime values listed in `.env.example`: `CRM_OWNER_EMAIL` and `LEAD_FORM_SECRET` (at least 32 characters). Actual values belong in private deployment settings or an ignored local `.dev.vars` file.
 
-Add actual videos, confirm all calls to action, and review the finished content and applicable advertising requirements. Sample charts and figures are educational illustrations, not live prices or verified trading results. No analytics or Meta Pixel has been installed.
+Generate schema changes with `pnpm db:generate`. Apply pending local migrations using Wrangler and the generated `dist/server/wrangler.json`; Sites applies hosted migrations during publication. Keep applied SQL and Drizzle metadata unchanged.
+
+GitHub contains a source copy. GitHub commits and the current Sites deployment require their respective publication workflows; no automatic two-way synchronization is configured.
+
+## Validation
+
+- TypeScript checks and the production build.
+- Worker/D1 integration tests for contact consent, cross-origin and token rejection, owner authorization, duplicate submission handling, search, status/notes updates, safe CSV escaping and deletion.
+- Browser checks for popup submission and confirmation, responsive layouts, and the three Facebook players.
+
+Run the integration test after building with `node --test tests/crm.integration.mjs`. It uses an isolated Miniflare database and local test identity headers, never production records. It reads ignored local configuration values; no credentials are committed.
+
+## Media and registration
+
+The three user-supplied Facebook Reels load only after selection and have permanent direct-watch links. Branded covers are page artwork, not extracted Reel thumbnails. Loading a different Reel unloads the previous player. The MP4 copies are excluded from deployment.
+
+The YouTube overview remains at https://www.youtube.com/watch?v=v_DsF1eeckA. Its player displays 11:30; the page describes it as about 12 minutes. WhatsApp is marked coming soon.
+
+The exact supplied broker referral link is https://www.vtmarkets.com/en-ca/trade-now/?affid=MzQ3MzEwOTM= . The guide highlights the Referrer (Optional) field, code `eePfC6mw`, referral disclosure and regional eligibility notices. The page does not open accounts or verify broker approval.
+
+## Research and artwork
+
+Mobile layout and CTA guidance: https://support.google.com/google-ads/answer/6238826?hl=en and https://business.google.com/us/resources/articles/mobile-landing-page/ . These informed the design; conversion performance has not been measured.
+
+Broker eligibility and Canadian regulator notices: https://get.vtmarkets.help/hc/en-us/articles/37317976020377-Is-there-a-restriction-on-opening-a-VT-Markets-account , https://www.bcsc.bc.ca/enforcement/early-intervention/investment-caution-list/2024/vt-markets and https://www.securities-administrators.ca/investor-alerts/vt-markets-2/ .
+
+Hero artwork was adapted from the supplied Sky-themed poster with a dark navy horizon, blue financial-district skyline and silhouette; source poster text was removed. The existing Sky Team emblem was preserved with a transparent background. Both project assets are included under `public/assets/`.
