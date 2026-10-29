@@ -15,11 +15,38 @@
   let requestId = newRequestId();
   let tokenPromise = null;
   let source = 'landing-page';
-  let submitted = preference('sky-lead-submitted') === '1';
-  let gateDue = false;
-  function preference(key, value) {
-    try { if (value !== undefined) sessionStorage.setItem(key, value); return sessionStorage.getItem(key); }
-    catch { return null; }
+  const day = 24 * 60 * 60 * 1000;
+  const submittedKey = 'sky-lead-submitted-until';
+  const dismissedKey = 'sky-lead-dismissed-until';
+  let submitted = remembered(submittedKey);
+  let dismissed = remembered(dismissedKey);
+  let reminderDue = false;
+  function remembered(key) {
+    for (const storage of ['localStorage', 'sessionStorage']) {
+      try {
+        const until = Number(window[storage].getItem(key));
+        if (Number.isFinite(until) && until > Date.now()) return true;
+        window[storage].removeItem(key);
+      } catch { /* Browsing and enquiries still work when storage is disabled. */ }
+    }
+    return false;
+  }
+  function remember(key, duration) {
+    const until = String(Date.now() + duration);
+    for (const storage of ['localStorage', 'sessionStorage']) {
+      try { window[storage].setItem(key, until); } catch { /* Use in-memory preferences for this visit. */ }
+    }
+  }
+  // Carry a successful enquiry from the previous session-only implementation forward.
+  try {
+    if (!submitted && sessionStorage.getItem('sky-lead-submitted') === '1') {
+      submitted = true; remember(submittedKey, 30 * day);
+      sessionStorage.removeItem('sky-lead-submitted');
+    }
+  } catch { /* No stored contact details are needed to use this page. */ }
+  function alreadySubmitted() {
+    submitted = submitted || remembered(submittedKey);
+    return submitted;
   }
   async function getToken() {
     const response = await fetch('/api/leads/token', { cache: 'no-store', credentials: 'same-origin' });
@@ -28,7 +55,7 @@
     return value.token;
   }
   function openLead(origin) {
-    if (submitted || dialog.open) return;
+    if (alreadySubmitted() || dialog.open) return;
     source = origin;
     error.textContent = '';
     tokenPromise = getToken(); tokenPromise.catch(() => {});
@@ -37,24 +64,20 @@
     else if (matchMedia('(min-width: 721px)').matches) form.elements.name.focus();
   }
   document.querySelectorAll('[data-open-lead]').forEach(button => button.addEventListener('click', event => {
-    if (submitted) return;
+    if (alreadySubmitted()) return;
     event.preventDefault();
     openLead('landing:cta');
   }));
-  // Starting a video or broker registration also requires a saved enquiry.
-  document.addEventListener('click', event => {
-    if (submitted || !(event.target instanceof Element)) return;
-    const action = event.target.closest('#play-video, .reel-load, .broker-link');
-    if (!action) return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    openLead('landing:continue');
-  }, true);
-  document.querySelector('#lead-close').addEventListener('click', () => { if (submitted) dialog.close(); });
-  dialog.addEventListener('cancel', event => { if (!submitted) event.preventDefault(); });
+  function dismissLead() {
+    if (!submitted) { dismissed = true; remember(dismissedKey, day); }
+    dialog.close();
+  }
+  document.querySelectorAll('[data-dismiss-lead]').forEach(control => control.addEventListener('click', dismissLead));
+  dialog.addEventListener('cancel', event => { event.preventDefault(); dismissLead(); });
   dialog.addEventListener('click', event => {
-    if (!submitted || event.target !== dialog) return;
+    if (event.target !== dialog) return;
     const box = dialog.getBoundingClientRect();
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dismissLead();
   });
   document.querySelectorAll('[data-lead-continue]').forEach(link => link.addEventListener('click', () => { if (submitted) dialog.close(); }));
   form.addEventListener('submit', async event => {
@@ -76,11 +99,9 @@
       const result = await response.json();
       if (!response.ok || result.ok !== true) throw new Error(result.error || 'We could not save your enquiry. Please try again.');
       submitted = true;
-      preference('sky-lead-submitted', '1');
+      remember(submittedKey, 30 * day);
       form.reset(); requestId = newRequestId(); tokenPromise = null;
       formView.hidden = true; successView.hidden = false;
-      document.querySelector('#lead-close').hidden = false;
-      dialog.removeAttribute('closedby');
       dialog.removeAttribute('aria-labelledby');
       dialog.removeAttribute('aria-describedby');
       dialog.setAttribute('aria-label', 'Enquiry saved — your Sky Team next steps');
@@ -91,13 +112,14 @@
       error.scrollIntoView({ block: 'nearest' });
     } finally {
       submit.disabled = false;
-      submit.innerHTML = 'Save details &amp; continue <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
+      submit.innerHTML = 'Send my enquiry <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
     }
   });
-  function showTimedGate() {
-    if (gateDue && !submitted && document.visibilityState === 'visible' && !document.querySelector('dialog[open]')) openLead('landing:auto');
+  function showTimedReminder() {
+    dismissed = dismissed || remembered(dismissedKey);
+    if (reminderDue && !alreadySubmitted() && !dismissed && document.visibilityState === 'visible' && !document.querySelector('dialog[open], .reel-frame iframe, #video-frame iframe')) openLead('landing:auto');
   }
-  setTimeout(() => { gateDue = true; showTimedGate(); }, 10000);
-  document.addEventListener('visibilitychange', showTimedGate);
-  document.querySelectorAll('.policy-dialog').forEach(policy => policy.addEventListener('close', showTimedGate));
+  setTimeout(() => { reminderDue = true; showTimedReminder(); }, 10000);
+  document.addEventListener('visibilitychange', showTimedReminder);
+  document.querySelectorAll('.policy-dialog').forEach(policy => policy.addEventListener('close', showTimedReminder));
 })();
