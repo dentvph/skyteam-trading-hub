@@ -1,8 +1,8 @@
-import { db, field, json, ownerDenial, readJson, sameOrigin, STATUSES, type LeadStatus } from '@/lib/leads';
+import { db, field, json, ownerDenial, crmDenial, readJson, sameOrigin, STATUSES, type LeadStatus } from '@/lib/leads';
 export const dynamic = 'force-dynamic';
 type Context = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, context: Context) {
-  const denial = await ownerDenial(); if (denial) return denial;
+  const denial = await crmDenial(true); if (denial) return denial;
   if (!sameOrigin(request)) return json({ error: 'Invalid request origin.' }, 403);
   const { id } = await context.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: 'Lead not found.' }, 404);

@@ -24,3 +24,10 @@ export const leadRateLimits = sqliteTable('lead_rate_limits', {
   count: integer('count').notNull().default(1),
   expiresAt: integer('expires_at').notNull(),
 });
+
+export const crmAccess = sqliteTable('crm_access', {
+  email: text('email').primaryKey(),
+  role: text('role').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});

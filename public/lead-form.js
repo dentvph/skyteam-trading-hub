@@ -55,14 +55,28 @@
     return value.token;
   }
   function openLead(origin) {
-    if (alreadySubmitted() || dialog.open) return;
+    if (dialog.open) return;
     source = origin;
     error.textContent = '';
-    tokenPromise = getToken(); tokenPromise.catch(() => {});
+    if (!alreadySubmitted()) { tokenPromise = getToken(); tokenPromise.catch(() => {}); }
     dialog.showModal();
-    if (origin === 'landing:auto') document.querySelector('#lead-title').focus({ preventScroll: true });
+    if (origin === 'landing:auto' || origin === 'landing:video') document.querySelector('#lead-title').focus({ preventScroll: true });
     else if (matchMedia('(min-width: 721px)').matches) form.elements.name.focus();
   }
+  document.querySelectorAll('[data-open-overview], #play-video').forEach(control => control.addEventListener('click', event => {
+    event.preventDefault(); openLead('landing:video'); void window.SkyOverview.play();
+  }));
+  document.querySelector('#lead-show-enquiry').addEventListener('click', () => {
+    if (alreadySubmitted()) document.querySelector('#lead-next-step').focus();
+    else { document.querySelector('#lead-form-title').scrollIntoView({ block: 'start', behavior: 'smooth' }); form.elements.name.focus({ preventScroll: true }); }
+  });
+  document.addEventListener('sky:overview-halfway', () => {
+    if (!alreadySubmitted()) return;
+    const note = document.querySelector('#lead-halfway-note');
+    note.querySelector('h3').textContent = 'Your next steps are ready.';
+    note.querySelector('p').textContent = 'Your enquiry is saved. Keep watching, or take a look at the community access steps.';
+    document.querySelector('#lead-show-enquiry').textContent = 'View your next steps →';
+  });
   document.querySelectorAll('[data-open-lead]').forEach(button => button.addEventListener('click', event => {
     if (alreadySubmitted()) return;
     event.preventDefault();
@@ -100,11 +114,9 @@
       if (!response.ok || result.ok !== true) throw new Error(result.error || 'We could not save your enquiry. Please try again.');
       submitted = true;
       remember(submittedKey, 30 * day);
+      document.querySelector('#lead-halfway-note').hidden = true;
       form.reset(); requestId = newRequestId(); tokenPromise = null;
       formView.hidden = true; successView.hidden = false;
-      dialog.removeAttribute('aria-labelledby');
-      dialog.removeAttribute('aria-describedby');
-      dialog.setAttribute('aria-label', 'Enquiry saved — your Sky Team next steps');
       document.querySelector('#lead-next-step').focus();
     } catch (problem) {
       tokenPromise = null;
@@ -112,7 +124,7 @@
       error.scrollIntoView({ block: 'nearest' });
     } finally {
       submit.disabled = false;
-      submit.innerHTML = 'Send my enquiry <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
+      submit.innerHTML = 'Help me get started <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
     }
   });
   function showTimedReminder() {
@@ -122,4 +134,5 @@
   setTimeout(() => { reminderDue = true; showTimedReminder(); }, 10000);
   document.addEventListener('visibilitychange', showTimedReminder);
   document.querySelectorAll('.policy-dialog').forEach(policy => policy.addEventListener('close', showTimedReminder));
+  if (submitted) { formView.hidden = true; successView.hidden = false; }
 })();
