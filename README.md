@@ -1,29 +1,41 @@
 # Sky Team Trading Hub
 
-A trading-education landing page with three Facebook Reel players, a community enquiry popup and an owner-only lead manager. The website keeps the Sky Team branding, YouTube overview, Facebook contact links and VT Markets referral guide (code `eePfC6mw`).
+A trading-education landing page with three Facebook Reel players, a community enquiry popup and a private lead manager with owner-controlled team access. The website keeps the Sky Team branding, YouTube overview, Facebook contact links and VT Markets referral guide (code `eePfC6mw`).
 
-## Lead capture
+## Video and community enquiry
 
-The optional popup collects name, email, phone, country and optional city. Contact consent is required only when submitting an enquiry, and its version and timestamp are recorded. It opens automatically after 10 seconds, or manually through Get started / Get community access. Visitors can close it with X, Escape, a backdrop click or Continue browsing. The Facebook page is directly accessible in the popup without submitting. Video playback, broker registration and browsing do not require an enquiry.
+The popup opens after 10 seconds, unless the same browser remembers a dismissal (24 hours) or successful enquiry (30 days). It contains the existing YouTube overview beside a voluntary community enquiry form. YouTube loads only after an explicit play action; sound, captions, seeking and full playback remain available. Closing the popup pauses playback. Main-page overview controls open this same player.
 
-The same browser remembers a successful enquiry for 30 days and a dismissed reminder for 24 hours. Only expiry timestamps are stored in localStorage, with a sessionStorage fallback; contact details are never stored in browser storage. Clearing site data or using another browser/device can show the reminder again. Manual enquiry controls remain available after dismissal. If storage is disabled, in-memory preferences still allow the visitor to browse. The automatic reminder waits while a policy dialog is open and does not interrupt an embedded video. The confirmation offers Continue to website, the registration guide, Facebook and Messenger.
+At half the runtime reported by YouTube, a non-blocking invitation appears below the player. It does not pause, cover or restrict playback. A mandatory signup gate on YouTube playback is not implemented: YouTube's developer policies prohibit requiring an action beyond Play to view or continue the video. Strict gated playback would require a separately hosted original video. Reference: https://developers.google.com/youtube/terms/developer-policies .
 
-Submissions are saved in Cloudflare D1. The confirmation screen appears after a successful server save and provides the registration guide and Facebook follow-up link. Broker approval and community access are separate checks. Submission requests use signed form tokens, same-origin validation, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
+The form collects name, email, phone, country and optional city, with recorded contact consent. Its copy explains that Sky Team may follow up about community access and questions; it does not create a broker account or guarantee membership or trading results. X, Escape, backdrop dismissal, Continue browsing, Facebook and YouTube links remain available.
 
-## Private CRM
+Only reminder-expiry timestamps are stored in browser storage, with a sessionStorage fallback. Contact details are saved in D1 after a successful server response. Submission requests use signed tokens, same-origin checks, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
 
-Open `/crm` and sign in with the configured Sky Team owner account. The dashboard includes searchable contact records, location, timestamps, manual follow-up stages, private notes, permanent deletion with confirmation, and a CSV export of matching leads. Follow-up stages are New, Contacted, Registered, Joined and Archived.
+## CRM and team access
 
-Authorization is enforced on the server for every CRM page, read, edit, delete and export. A visitor's access to the landing page does not grant access to lead records. Follow-ups are managed through the saved contact details.
+Open `/crm`. The entry page offers an explicit Sign in with ChatGPT action, and does not expose lead records to anonymous visitors. The configured owner can search contacts, update follow-up stages and notes, export CSV, delete contacts and open **Team access** at `/crm/access`.
+
+The owner adds the email a teammate uses to sign in with ChatGPT and chooses a role:
+
+| Role | View contacts | Edit status/notes | Export/delete contacts | Manage team access |
+| --- | --- | --- | --- | --- |
+| Owner | Yes | Yes | Yes | Yes |
+| Follow-up | Yes | Yes | No | No |
+| Read only | Yes | No | No | No |
+
+The owner is defined by private runtime configuration and cannot be removed through the team form. Authorized emails and roles are stored in D1. Role checks run on every protected API request, so revocation prevents subsequent reads or edits. No invitation emails are sent; the owner can copy and share the CRM link. No additional real person has been pre-authorized in source or migrations.
+
+Contact information is private to the owner and authorized team. Follow-up stages are New, Contacted, Registered, Joined and Archived. Broker approval and community participation are separate checks.
 
 ## Source layout
 
 - `content/landing.html`: landing page and popup markup.
 - `public/`: branding, landing styles/scripts and CRM styles.
 - `app/route.ts`: serves the landing page.
-- `app/crm/`: protected CRM page and dashboard.
+- `app/crm/`: sign-in entry, protected dashboard and team-access manager.
 - `app/api/leads/`: public enquiry token and submission routes.
-- `app/api/crm/`: protected lead management and export routes.
+- `app/api/crm/`: protected lead management, team-access and export routes.
 - `lib/leads.ts`: validation, authorization, token, rate-limit and query helpers.
 - `db/schema.ts`, `drizzle/`: D1 schema and immutable generated migration history.
 - `.openai/hosting.json`: retained Site identity and logical DB binding.
@@ -41,10 +53,10 @@ GitHub contains a source copy. GitHub commits and the current Sites deployment r
 ## Validation
 
 - TypeScript checks and the production build.
-- Worker/D1 integration tests for contact consent, cross-origin and token rejection, owner authorization, duplicate submission handling, search, status/notes updates, safe CSV escaping and deletion.
-- Browser checks for popup submission and confirmation, responsive layouts, and the three Facebook players.
+- Worker/D1 integration tests for consent, origin/token rejection, idempotency, search, notes/status, CSV escaping, role enforcement, owner-only grants, normalization, role changes and revocation.
+- Browser verification of the published popup/video and CRM entry is performed when the browser surface is available. The managed preview relay may be unavailable; server-rendering and API tests run independently of browser auth.
 
-Run the integration test after building with `node --test tests/crm.integration.mjs`. It uses an isolated Miniflare database and local test identity headers, never production records. It reads ignored local configuration values; no credentials are committed.
+Run the integration test after building with `node --test tests/crm.integration.mjs`. It uses an isolated Miniflare database and local test identity headers, never production records. It uses fixed fictional test identities and a test-only signing key. It never reads private runtime configuration or production records.
 
 ## Media and registration
 
