@@ -1,7 +1,7 @@
-import { db, json, leadFilter, ownerDenial } from '@/lib/leads';
+import { db, json, leadFilter, crmDenial } from '@/lib/leads';
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
-  const denial = await ownerDenial(); if (denial) return denial;
+  const denial = await crmDenial(); if (denial) return denial;
   try {
     const url = new URL(request.url); const filter = leadFilter(url);
     const requested = Number(url.searchParams.get('offset') || 0); const offset = Number.isSafeInteger(requested) ? Math.max(0, Math.min(requested, 100000)) : 0;

@@ -25,17 +25,6 @@ window.matchMedia('(min-width: 721px)').addEventListener('change', event => {
   if (event.matches) closeMenu();
 });
 
-document.querySelector('#play-video').addEventListener('click', () => {
-  const frame = document.createElement('iframe');
-  frame.src = 'https://www.youtube-nocookie.com/embed/v_DsF1eeckA?autoplay=1&rel=0';
-  frame.title = 'Sky Team Trading Hub — community overview';
-  frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-  frame.referrerPolicy = 'strict-origin-when-cross-origin';
-  frame.allowFullscreen = true;
-  document.querySelector('#video-frame').replaceChildren(frame);
-  frame.focus();
-});
-
 document.querySelectorAll('[data-dialog]').forEach(button => {
   button.addEventListener('click', () => {
     const dialog = document.getElementById(button.dataset.dialog);
