@@ -5,6 +5,7 @@ import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 
 const controller = await readFile(new URL('../public/lead-form.js', import.meta.url), 'utf8');
+const landingHTML = await readFile(new URL('../content/landing.html', import.meta.url), 'utf8');
 const key = 'sky-lead-submitted-until';
 
 // Only the DOM surface used by the shipped controller is substituted. Requests
@@ -12,7 +13,12 @@ const key = 'sky-lead-submitted-until';
 class Element {
   constructor() { this.hidden = false; this.open = false; this.disabled = false; this.dataset = {}; this.events = {}; this.innerHTML = ''; this.textContent = ''; }
   addEventListener(type, callback) { (this.events[type] ||= []).push(callback); }
-  async emit(type, detail = {}) { for (const callback of this.events[type] || []) await callback({ preventDefault() {}, target: this, ...detail }); }
+  async emit(type, detail = {}) {
+    const event = { defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, target: this, ...detail };
+    for (const callback of this.events[type] || []) await callback(event);
+    if (type === 'cancel' && !event.defaultPrevented) this.close();
+    return event;
+  }
   setAttribute(name, value) { this[name] = value; }
   showModal() { this.open = true; }
   close() { this.open = false; void this.emit('close'); }
@@ -72,10 +78,10 @@ test('new visitor watches YouTube first; failed saves stay gated and retry unloc
   assert.equal(h.player.loads, 1);
   assert.equal(h.requests.length, 0, 'opening video does not fetch a form token');
   await h.get('#lead-register-continue').emit('click');
-  assert.equal(h.get('#lead-video-view').hidden, true);
+  assert.equal(h.get('#lead-video-view').hidden, false, 'the same video stays visible above registration');
   assert.equal(h.get('#lead-form-view').hidden, false);
   assert.equal(h.get('#lead-dialog')['aria-labelledby'], 'lead-form-title');
-  assert.equal(h.player.pauses, 1);
+  assert.equal(h.player.pauses, 0, 'opening registration does not pause YouTube');
   h.responses.push({ ok: false, body: { error: 'Please try again.' } });
   await h.form.emit('submit');
   assert.equal(h.get('#landing-content').hidden, true);
@@ -83,6 +89,7 @@ test('new visitor watches YouTube first; failed saves stay gated and retry unloc
   assert.equal(h.get('#lead-form-error').textContent, 'Please try again.');
   assert.equal(h.values.has(key), false);
   assert.equal(h.get('#lead-submit').disabled, false);
+  assert.equal(h.player.pauses, 0, 'a failed save does not interrupt YouTube');
   await h.form.emit('submit');
   const posts = h.requests.filter(request => request.url === '/api/leads').map(request => JSON.parse(request.options.body));
   assert.equal(posts.length, 2);
@@ -97,18 +104,28 @@ test('new visitor watches YouTube first; failed saves stay gated and retry unloc
   assert.ok(Number(h.values.get(key)) > Date.now());
 });
 
-test('X, Escape and Cancel return to welcome; Back to video never unlocks the page', async () => {
+test('no close or skip controls; Escape and backdrop cannot dismiss unregistered video or form', async () => {
   const h = harness();
-  await h.all('[data-dismiss-lead]')[0].emit('click');
-  assert.equal(h.get('#lead-dialog').open, false);
-  assert.equal(h.get('#community-entry').hidden, false);
+  const markup = landingHTML.match(/<dialog[^>]*id="lead-dialog"[\s\S]*?<\/dialog>/)[0];
+  assert.doesNotMatch(markup, /id="lead-close"|data-dismiss-lead|>Cancel<|>Continue browsing</);
+  assert.match(markup, /closedby="none"/);
+  const dialog = h.get('#lead-dialog');
+  const cancel = await dialog.emit('cancel');
+  assert.equal(cancel.defaultPrevented, true);
+  await dialog.emit('click', { clientX: 0, clientY: 0 });
+  assert.equal(dialog.open, true);
   assert.equal(h.get('#landing-content').hidden, true);
-  await h.all('[data-open-registration]')[0].emit('click');
+  await h.get('#lead-register-continue').emit('click');
+  await dialog.emit('cancel');
+  await dialog.emit('click', { clientX: 0, clientY: 0 });
+  assert.equal(dialog.open, true);
+  assert.equal(h.get('#lead-form-view').hidden, false);
+  assert.equal(h.get('#lead-video-view').hidden, false);
   await h.get('#lead-back-video').emit('click');
   assert.equal(h.get('#lead-video-view').hidden, false);
   assert.equal(h.get('#lead-form-view').hidden, true);
-  await h.get('#lead-dialog').emit('cancel');
-  assert.equal(h.get('#lead-dialog').open, false);
+  assert.equal(h.player.pauses, 0);
+  assert.equal(dialog.open, true);
   assert.equal(h.get('#landing-content').inert, true);
   assert.equal(h.values.has(key), false);
 });

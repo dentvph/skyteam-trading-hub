@@ -4,9 +4,9 @@ A trading-education landing page with three Facebook Reel players, a community e
 
 ## Video-first registration
 
-New visitors see a popup containing the existing YouTube overview, with **Register to continue** directly below the player. The popup loads the native YouTube player without autoplay. Sound, captions, seeking and full playback remain available without registration. Selecting the registration button pauses the video and replaces the video view with the contact form. **Back to the video** returns to the overview; closing the popup pauses playback.
+New visitors see a popup containing the existing YouTube overview, with **Register to continue** directly below the player. The popup loads the native YouTube player without autoplay. Sound, captions, seeking and full playback remain available without registration. Selecting the registration button reveals the contact form below the same visible player without pausing, replacing or restarting it. **Back to the video** hides the form and returns to the overview without interrupting playback.
 
-X, Escape, backdrop dismissal and Cancel return unregistered visitors to a welcome screen, where they can reopen the overview, register or visit Facebook. The landing content stays hidden and inert until the server confirms a successful form submission. Validation, network or storage errors keep the form available for retry. A successful submission saves the contact to the CRM, closes the popup and immediately reveals the landing page with a confirmation message.
+The registration popup has no X, Cancel or unregistered Continue browsing action. Escape and backdrop clicks cannot dismiss it for unregistered visitors. The landing content stays hidden and inert until the server confirms a successful form submission. Validation, network or storage errors keep the form available for retry. A successful submission saves the contact to the CRM, closes the popup, pauses the video and immediately reveals the landing page with a confirmation message. External Facebook and YouTube links do not unlock the landing page.
 
 The same browser remembers successful registration for 30 days and skips the welcome step on return. Previously saved enquiry preferences are preserved. A reopened overview offers **Continue browsing** instead of another registration request. Clearing site data, changing browser/device or expiry shows the welcome step again. When storage is disabled, successful registration still unlocks the current page in memory. Old dismissal preferences no longer bypass registration.
 
@@ -55,7 +55,7 @@ GitHub contains a source copy. GitHub commits and the current Sites deployment r
 ## Validation
 
 - TypeScript checks and the production build.
-- Registration-flow tests for video/form transitions, cancellation, failed-save retries, successful unlock, remembered/expired registration and unavailable browser storage.
+- Registration-flow tests for uninterrupted video/form transitions, blocked Escape/backdrop dismissal, failed-save retries, successful unlock, remembered/expired registration and unavailable browser storage.
 - Worker/D1 integration tests for consent, origin/token rejection, idempotency, search, notes/status, CSV escaping, role enforcement, owner-only grants, normalization, role changes and revocation.
 - Browser verification of the published popup/video and CRM entry is performed when the browser surface is available. The managed preview relay may be unavailable; server-rendering and API tests run independently of browser auth.
 

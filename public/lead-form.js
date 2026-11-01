@@ -58,6 +58,7 @@
   }
   function setVideoButton() {
     const registered = alreadySubmitted();
+    document.querySelector('#lead-access-status').textContent = registered ? 'Your registration is saved' : 'Registration required to explore';
     continueButton.innerHTML = `${registered ? 'Continue browsing' : 'Register to continue'} <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>`;
     document.querySelector('#lead-register-note').textContent = registered
       ? 'Your registration is remembered in this browser. Explore whenever you’re ready.'
@@ -86,8 +87,8 @@
   function openRegistration(origin) {
     if (alreadySubmitted()) { revealLanding(); if (dialog.open) dialog.close(); return; }
     source = origin;
-    window.SkyOverview.pause();
-    videoView.hidden = true;
+    // Keep the same visible player mounted so registration does not interrupt it.
+    videoView.hidden = false;
     formView.hidden = false;
     dialog.dataset.step = 'register';
     dialog.setAttribute('aria-labelledby', 'lead-form-title');
@@ -97,6 +98,7 @@
     tokenPromise.catch(() => {});
     if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
+    document.querySelector('#lead-form-title').scrollIntoView({ block: 'start' });
     document.querySelector('#lead-form-title').focus({ preventScroll: true });
   }
   document.querySelectorAll('[data-open-overview], #play-video').forEach(control => control.addEventListener('click', event => {
@@ -109,16 +111,10 @@
   }));
   continueButton.addEventListener('click', () => openRegistration('landing:video-registration'));
   document.querySelector('#lead-back-video').addEventListener('click', () => openVideo('landing:video'));
-  function dismissLead() { if (dialog.open) dialog.close(); }
-  document.querySelectorAll('[data-dismiss-lead]').forEach(control => control.addEventListener('click', dismissLead));
-  dialog.addEventListener('cancel', event => { event.preventDefault(); dismissLead(); });
-  dialog.addEventListener('click', event => {
-    if (event.target !== dialog) return;
-    const box = dialog.getBoundingClientRect();
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dismissLead();
-  });
-  dialog.addEventListener('close', () => {
-    if (!alreadySubmitted()) document.querySelector('#community-entry-title').focus({ preventScroll: true });
+  // Escape cannot dismiss registration. The backdrop has no dismissal handler.
+  dialog.addEventListener('cancel', event => {
+    event.preventDefault();
+    if (alreadySubmitted()) dialog.close();
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
