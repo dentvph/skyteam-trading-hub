@@ -26,7 +26,7 @@ class Element {
   scrollIntoView() {}
   getBoundingClientRect() { return { left: 10, right: 500, top: 10, bottom: 500 }; }
 }
-function harness({ rememberedUntil, storageBlocked = false } = {}) {
+function harness({ rememberedUntil, storageBlocked = false, apiOrigin = '' } = {}) {
   const elements = new Map();
   const get = selector => { if (!elements.has(selector)) elements.set(selector, new Element()); return elements.get(selector); };
   const groups = new Map();
@@ -57,7 +57,7 @@ function harness({ rememberedUntil, storageBlocked = false } = {}) {
   const window = { localStorage: storage, sessionStorage: storage, SkyOverview: player, scrollTo() {} };
   vm.runInNewContext(controller, {
     window, crypto: webcrypto,
-    document: { querySelector: get, querySelectorAll: all },
+    document: { documentElement: { dataset: { leadApiOrigin: apiOrigin } }, querySelector: get, querySelectorAll: all },
     sessionStorage: storage, location: { search: '?utm_source=facebook&utm_campaign=welcome' }, URLSearchParams,
     FormData: class { constructor(input) { this.values = input.values; } get(name) { return this.values[name]; } },
     fetch: async (url, options) => {
@@ -157,4 +157,16 @@ test('invalid forms stay gated; successful registration works when browser stora
   assert.equal(h.get('#landing-content').hidden, false);
   assert.equal(h.get('#lead-dialog').open, false);
   assert.equal(h.values.has(key), false);
+});
+
+test('GitHub Pages posts registration to the configured backend without cross-site account cookies', async () => {
+  const apiOrigin = 'https://sky-team-trading-hub.dentvph.chatgpt.site';
+  const h = harness({ apiOrigin });
+  await h.get('#lead-register-continue').emit('click');
+  await h.form.emit('submit');
+  assert.equal(h.requests.length, 2);
+  assert.equal(h.requests[0].url, `${apiOrigin}/api/leads/token`);
+  assert.equal(h.requests[1].url, `${apiOrigin}/api/leads`);
+  for (const request of h.requests) assert.equal(request.options.credentials, 'omit');
+  assert.equal(h.get('#landing-content').hidden, false);
 });

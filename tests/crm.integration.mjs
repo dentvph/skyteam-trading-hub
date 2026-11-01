@@ -110,3 +110,55 @@ test('only the owner grants access; team permissions and revocation are enforced
     await access('DELETE',{email:viewerEmail}); await access('DELETE',{email:memberEmail});
   }
 });
+
+test('GitHub Pages can submit the contact form; other origins and cross-site CRM access remain blocked', async () => {
+  const { siteUrl } = JSON.parse(await readFile(resolve('deployment/pages.json'), 'utf8'));
+  const pagesOrigin = new URL(siteUrl).origin;
+  const pagesHeaders = { origin: pagesOrigin, 'sec-fetch-site': 'cross-site', 'content-type': 'application/json', 'cf-connecting-ip': '198.51.100.88' };
+  const preflightHeaders = { origin: pagesOrigin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type,x-sky-lead-token' };
+  const options = await call('/api/leads', { method: 'OPTIONS', headers: preflightHeaders });
+  assert.equal(options.status, 204);
+  assert.equal(options.headers.get('access-control-allow-origin'), pagesOrigin);
+  assert.equal(options.headers.get('access-control-allow-methods'), 'POST');
+  assert.equal(options.headers.get('access-control-allow-credentials'), null);
+  assert.equal((await call('/api/leads', { method: 'OPTIONS', headers: { ...preflightHeaders, 'access-control-request-method': 'DELETE' } })).status, 403);
+  assert.equal((await call('/api/leads', { method: 'OPTIONS', headers: { ...preflightHeaders, 'access-control-request-headers': 'authorization' } })).status, 403);
+  const tokenResponse = await call('/api/leads/token', { headers: { origin: pagesOrigin, 'sec-fetch-site': 'cross-site' } });
+  assert.equal(tokenResponse.status, 200);
+  assert.equal(tokenResponse.headers.get('access-control-allow-origin'), pagesOrigin);
+  assert.ok(tokenResponse.headers.get('vary').includes('Origin'));
+  const { token } = await tokenResponse.json();
+  const email = `pages-${crypto.randomUUID()}@example.invalid`;
+  const payload = { requestId: crypto.randomUUID(), name: 'Pages test visitor', email, phone: '+1 416 555 0100', country: 'Canada', city: '', consent: true, website: '', source: 'github-pages-test' };
+  const post = (body = payload, headers = {}) => call('/api/leads', { method: 'POST', headers: { ...pagesHeaders, 'x-sky-lead-token': token, ...headers }, body: JSON.stringify(body) });
+  const noConsent = await post({ ...payload, consent: false });
+  assert.equal(noConsent.status, 400);
+  assert.equal(noConsent.headers.get('access-control-allow-origin'), pagesOrigin, 'trusted form can display validation errors');
+  assert.equal((await post(payload, { 'x-sky-lead-token': 'invalid' })).status, 403);
+  const saved = await post();
+  assert.equal(saved.status, 200);
+  assert.equal(saved.headers.get('access-control-allow-origin'), pagesOrigin);
+  assert.equal((await saved.json()).ok, true);
+  const result = await (await call(`/api/crm/leads?q=${encodeURIComponent(email)}`, { headers: ownerHeaders })).json();
+  assert.equal(result.total, 1);
+  const lead = result.items[0];
+  try {
+    const privateResponse = await call('/api/crm/leads', { headers: pagesHeaders });
+    assert.equal(privateResponse.status, 403);
+    assert.equal(privateResponse.headers.get('access-control-allow-origin'), null);
+    const edit = await call(`/api/crm/leads/${lead.id}`, { method: 'PATCH', headers: { ...pagesHeaders, ...ownerHeaders }, body: JSON.stringify({ status: 'contacted', notes: 'Cross-site request must fail.' }) });
+    assert.equal(edit.status, 403);
+    assert.equal(edit.headers.get('access-control-allow-origin'), null);
+    for (const origin of ['https://unrelated.example', `${pagesOrigin}.unrelated.example`]) {
+      const response = await post(payload, { origin });
+      assert.equal(response.status, 403);
+      assert.equal(response.headers.get('access-control-allow-origin'), null);
+      const tokenRequest = await call('/api/leads/token', { headers: { origin } });
+      assert.equal(tokenRequest.status, 403);
+      assert.equal(tokenRequest.headers.get('access-control-allow-origin'), null);
+      assert.equal((await call('/api/leads', { method: 'OPTIONS', headers: { ...preflightHeaders, origin } })).status, 403);
+    }
+  } finally {
+    await call(`/api/crm/leads/${lead.id}`, { method: 'DELETE', headers: { ...originHeaders, ...ownerHeaders } });
+  }
+});

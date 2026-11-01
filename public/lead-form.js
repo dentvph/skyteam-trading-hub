@@ -9,6 +9,8 @@
   const submit = document.querySelector('#lead-submit');
   const continueButton = document.querySelector('#lead-register-continue');
   const submitLabel = submit.innerHTML;
+  const apiOrigin = document.documentElement.dataset.leadApiOrigin || '';
+  const apiCredentials = apiOrigin ? 'omit' : 'same-origin';
   const day = 24 * 60 * 60 * 1000;
   const submittedKey = 'sky-lead-submitted-until';
   let submitted = remembered(submittedKey);
@@ -79,7 +81,7 @@
     void window.SkyOverview.load();
   }
   async function getToken() {
-    const response = await fetch('/api/leads/token', { cache: 'no-store', credentials: 'same-origin' });
+    const response = await fetch(`${apiOrigin}/api/leads/token`, { cache: 'no-store', credentials: apiCredentials });
     const value = await response.json();
     if (!response.ok || !value.token) throw new Error(value.error || 'Please try again or message Sky Team on Facebook.');
     return value.token;
@@ -127,8 +129,8 @@
       const values = new FormData(form);
       const params = new URLSearchParams(location.search);
       const campaign = ['utm_source','utm_medium','utm_campaign'].map(key => params.get(key)).filter(Boolean).join(' / ');
-      const response = await fetch('/api/leads', {
-        method: 'POST', credentials: 'same-origin',
+      const response = await fetch(`${apiOrigin}/api/leads`, {
+        method: 'POST', credentials: apiCredentials,
         headers: { 'content-type': 'application/json', 'x-sky-lead-token': token },
         body: JSON.stringify({ requestId, name: values.get('name'), email: values.get('email'), phone: values.get('phone'), country: values.get('country'), city: values.get('city'), consent: values.get('consent') === 'on', website: values.get('website'), source: campaign ? `${source} / ${campaign}` : source })
       });
