@@ -58,18 +58,18 @@
             iframe.referrerPolicy = 'strict-origin-when-cross-origin';
             iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
             iframe.allowFullscreen = true;
-            status.textContent = 'Press play in YouTube. Sound, captions and full playback are available.';
+            status.textContent = 'Press play to begin. Sound, captions and full playback are available.';
             if (playRequested && dialog.open && !view.hidden) event.target.playVideo();
             playRequested = false;
           },
           onAutoplayBlocked() { status.textContent = 'Press play in the video to begin with sound.'; },
-          onError() { status.textContent = 'This player is unavailable here. Use Watch on YouTube below.'; },
+          onError() { status.textContent = 'The video is unavailable right now. Please try again later.'; },
         },
       });
     } catch {
       starting = false; playRequested = false; button.disabled = false;
       frame.replaceChildren(...cover);
-      status.textContent = 'YouTube could not load here. Try again or use Watch on YouTube below.';
+      status.textContent = 'The video could not load. Press play to retry.';
     }
   }
   function pause() {
