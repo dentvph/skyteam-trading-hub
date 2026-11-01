@@ -2,15 +2,17 @@
 
 A trading-education landing page with three Facebook Reel players, a community enquiry popup and a private lead manager with owner-controlled team access. The website keeps the Sky Team branding, YouTube overview, Facebook contact links and VT Markets referral guide (code `eePfC6mw`).
 
-## Video and community enquiry
+## Video-first registration
 
-The popup opens after 10 seconds, unless the same browser remembers a dismissal (24 hours) or successful enquiry (30 days). It contains the existing YouTube overview beside a voluntary community enquiry form. YouTube loads only after an explicit play action; sound, captions, seeking and full playback remain available. Closing the popup pauses playback. Main-page overview controls open this same player.
+New visitors see a popup containing the existing YouTube overview, with **Register to continue** directly below the player. The popup loads the native YouTube player without autoplay. Sound, captions, seeking and full playback remain available without registration. Selecting the registration button pauses the video and replaces the video view with the contact form. **Back to the video** returns to the overview; closing the popup pauses playback.
 
-At half the runtime reported by YouTube, a non-blocking invitation appears below the player. It does not pause, cover or restrict playback. A mandatory signup gate on YouTube playback is not implemented: YouTube's developer policies prohibit requiring an action beyond Play to view or continue the video. Strict gated playback would require a separately hosted original video. Reference: https://developers.google.com/youtube/terms/developer-policies .
+X, Escape, backdrop dismissal and Cancel return unregistered visitors to a welcome screen, where they can reopen the overview, register or visit Facebook. The landing content stays hidden and inert until the server confirms a successful form submission. Validation, network or storage errors keep the form available for retry. A successful submission saves the contact to the CRM, closes the popup and immediately reveals the landing page with a confirmation message.
 
-The form collects name, email, phone, country and optional city, with recorded contact consent. Its copy explains that Sky Team may follow up about community access and questions; it does not create a broker account or guarantee membership or trading results. X, Escape, backdrop dismissal, Continue browsing, Facebook and YouTube links remain available.
+The same browser remembers successful registration for 30 days and skips the welcome step on return. Previously saved enquiry preferences are preserved. A reopened overview offers **Continue browsing** instead of another registration request. Clearing site data, changing browser/device or expiry shows the welcome step again. When storage is disabled, successful registration still unlocks the current page in memory. Old dismissal preferences no longer bypass registration.
 
-Only reminder-expiry timestamps are stored in browser storage, with a sessionStorage fallback. Contact details are saved in D1 after a successful server response. Submission requests use signed tokens, same-origin checks, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
+The form collects name, email, phone, country and optional city, with recorded contact consent. Its copy explains that Sky Team may follow up about community access and questions; it does not create a broker account or guarantee membership or trading results. Only a registration-expiry timestamp is stored in browser storage, with a sessionStorage fallback. Contact details are saved in D1. Submission requests use signed tokens, same-origin checks, bounded inputs, idempotency keys, a honeypot and a short-lived rate limit.
+
+This is a marketing welcome flow, not an authenticated member account or a secure content paywall: the landing markup is delivered to the browser and the preference can be edited. CRM data remains separately protected by server authorization. Registration never gates YouTube playback. Reference: https://developers.google.com/youtube/terms/developer-policies .
 
 ## CRM and team access
 
@@ -53,10 +55,11 @@ GitHub contains a source copy. GitHub commits and the current Sites deployment r
 ## Validation
 
 - TypeScript checks and the production build.
+- Registration-flow tests for video/form transitions, cancellation, failed-save retries, successful unlock, remembered/expired registration and unavailable browser storage.
 - Worker/D1 integration tests for consent, origin/token rejection, idempotency, search, notes/status, CSV escaping, role enforcement, owner-only grants, normalization, role changes and revocation.
 - Browser verification of the published popup/video and CRM entry is performed when the browser surface is available. The managed preview relay may be unavailable; server-rendering and API tests run independently of browser auth.
 
-Run the integration test after building with `node --test tests/crm.integration.mjs`. It uses an isolated Miniflare database and local test identity headers, never production records. It uses fixed fictional test identities and a test-only signing key. It never reads private runtime configuration or production records.
+Run the checks after building with `node --test tests/*.mjs`. CRM integration tests use an isolated Miniflare database and local test identity headers, never production records. They use fixed fictional test identities and a test-only signing key. They never read private runtime configuration or production records. Registration-flow tests execute the shipped browser controller in an isolated DOM harness; they do not verify browser rendering or actual YouTube playback.
 
 ## Media and registration
 

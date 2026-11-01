@@ -1,10 +1,21 @@
 (() => {
   const dialog = document.querySelector('#lead-dialog');
+  const entry = document.querySelector('#community-entry');
+  const landing = document.querySelector('#landing-content');
+  const videoView = document.querySelector('#lead-video-view');
+  const formView = document.querySelector('#lead-form-view');
   const form = document.querySelector('#lead-form');
   const error = document.querySelector('#lead-form-error');
   const submit = document.querySelector('#lead-submit');
-  const formView = document.querySelector('#lead-form-view');
-  const successView = document.querySelector('#lead-success-view');
+  const continueButton = document.querySelector('#lead-register-continue');
+  const submitLabel = submit.innerHTML;
+  const day = 24 * 60 * 60 * 1000;
+  const submittedKey = 'sky-lead-submitted-until';
+  let submitted = remembered(submittedKey);
+  let tokenPromise = null;
+  let requestId = newRequestId();
+  let source = 'landing:welcome';
+
   function newRequestId() {
     if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
     const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -12,41 +23,59 @@
     const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
     return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
   }
-  let requestId = newRequestId();
-  let tokenPromise = null;
-  let source = 'landing-page';
-  const day = 24 * 60 * 60 * 1000;
-  const submittedKey = 'sky-lead-submitted-until';
-  const dismissedKey = 'sky-lead-dismissed-until';
-  let submitted = remembered(submittedKey);
-  let dismissed = remembered(dismissedKey);
-  let reminderDue = false;
   function remembered(key) {
     for (const storage of ['localStorage', 'sessionStorage']) {
       try {
         const until = Number(window[storage].getItem(key));
         if (Number.isFinite(until) && until > Date.now()) return true;
         window[storage].removeItem(key);
-      } catch { /* Browsing and enquiries still work when storage is disabled. */ }
+      } catch { /* Registration still works without browser storage. */ }
     }
     return false;
   }
-  function remember(key, duration) {
-    const until = String(Date.now() + duration);
+  function remember() {
+    const until = String(Date.now() + 30 * day);
     for (const storage of ['localStorage', 'sessionStorage']) {
-      try { window[storage].setItem(key, until); } catch { /* Use in-memory preferences for this visit. */ }
+      try { window[storage].setItem(submittedKey, until); } catch { /* Keep this visit unlocked in memory. */ }
     }
   }
-  // Carry a successful enquiry from the previous session-only implementation forward.
+  // Preserve successful enquiries made before the video-first welcome flow.
   try {
     if (!submitted && sessionStorage.getItem('sky-lead-submitted') === '1') {
-      submitted = true; remember(submittedKey, 30 * day);
-      sessionStorage.removeItem('sky-lead-submitted');
+      submitted = true; remember(); sessionStorage.removeItem('sky-lead-submitted');
     }
-  } catch { /* No stored contact details are needed to use this page. */ }
+  } catch { /* No contact details are stored in the browser. */ }
   function alreadySubmitted() {
     submitted = submitted || remembered(submittedKey);
     return submitted;
+  }
+  function revealLanding(announce = false) {
+    entry.hidden = true;
+    landing.hidden = false;
+    landing.inert = false;
+    document.querySelector('#skip-content').href = '#main';
+    document.querySelector('#registration-confirmation').hidden = !announce;
+  }
+  function setVideoButton() {
+    const registered = alreadySubmitted();
+    continueButton.innerHTML = `${registered ? 'Continue browsing' : 'Register to continue'} <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>`;
+    document.querySelector('#lead-register-note').textContent = registered
+      ? 'Your registration is remembered in this browser. Explore whenever you’re ready.'
+      : 'Name, email, phone and location · Continue to the website after your details are saved.';
+  }
+  function openVideo(origin) {
+    source = origin;
+    if (alreadySubmitted()) revealLanding();
+    videoView.hidden = false;
+    formView.hidden = true;
+    dialog.dataset.step = 'video';
+    dialog.setAttribute('aria-labelledby', 'lead-title');
+    dialog.setAttribute('aria-describedby', 'lead-intro');
+    setVideoButton();
+    if (!dialog.open) dialog.showModal();
+    dialog.scrollTop = 0;
+    document.querySelector('#lead-title').focus({ preventScroll: true });
+    void window.SkyOverview.load();
   }
   async function getToken() {
     const response = await fetch('/api/leads/token', { cache: 'no-store', credentials: 'same-origin' });
@@ -54,38 +83,33 @@
     if (!response.ok || !value.token) throw new Error(value.error || 'Please try again or message Sky Team on Facebook.');
     return value.token;
   }
-  function openLead(origin) {
-    if (dialog.open) return;
+  function openRegistration(origin) {
+    if (alreadySubmitted()) { revealLanding(); if (dialog.open) dialog.close(); return; }
     source = origin;
+    window.SkyOverview.pause();
+    videoView.hidden = true;
+    formView.hidden = false;
+    dialog.dataset.step = 'register';
+    dialog.setAttribute('aria-labelledby', 'lead-form-title');
+    dialog.setAttribute('aria-describedby', 'lead-form-intro');
     error.textContent = '';
-    if (!alreadySubmitted()) { tokenPromise = getToken(); tokenPromise.catch(() => {}); }
-    dialog.showModal();
-    if (origin === 'landing:auto' || origin === 'landing:video') document.querySelector('#lead-title').focus({ preventScroll: true });
-    else if (matchMedia('(min-width: 721px)').matches) form.elements.name.focus();
+    tokenPromise = getToken();
+    tokenPromise.catch(() => {});
+    if (!dialog.open) dialog.showModal();
+    dialog.scrollTop = 0;
+    document.querySelector('#lead-form-title').focus({ preventScroll: true });
   }
   document.querySelectorAll('[data-open-overview], #play-video').forEach(control => control.addEventListener('click', event => {
-    event.preventDefault(); openLead('landing:video'); void window.SkyOverview.play();
+    event.preventDefault(); openVideo('landing:video');
   }));
-  document.querySelector('#lead-show-enquiry').addEventListener('click', () => {
-    if (alreadySubmitted()) document.querySelector('#lead-next-step').focus();
-    else { document.querySelector('#lead-form-title').scrollIntoView({ block: 'start', behavior: 'smooth' }); form.elements.name.focus({ preventScroll: true }); }
-  });
-  document.addEventListener('sky:overview-halfway', () => {
-    if (!alreadySubmitted()) return;
-    const note = document.querySelector('#lead-halfway-note');
-    note.querySelector('h3').textContent = 'Your next steps are ready.';
-    note.querySelector('p').textContent = 'Your enquiry is saved. Keep watching, or take a look at the community access steps.';
-    document.querySelector('#lead-show-enquiry').textContent = 'View your next steps →';
-  });
-  document.querySelectorAll('[data-open-lead]').forEach(button => button.addEventListener('click', event => {
+  document.querySelectorAll('[data-open-registration]').forEach(control => control.addEventListener('click', () => openRegistration('landing:welcome-registration')));
+  document.querySelectorAll('[data-open-lead]').forEach(control => control.addEventListener('click', event => {
     if (alreadySubmitted()) return;
-    event.preventDefault();
-    openLead('landing:cta');
+    event.preventDefault(); openRegistration('landing:cta');
   }));
-  function dismissLead() {
-    if (!submitted) { dismissed = true; remember(dismissedKey, day); }
-    dialog.close();
-  }
+  continueButton.addEventListener('click', () => openRegistration('landing:video-registration'));
+  document.querySelector('#lead-back-video').addEventListener('click', () => openVideo('landing:video'));
+  function dismissLead() { if (dialog.open) dialog.close(); }
   document.querySelectorAll('[data-dismiss-lead]').forEach(control => control.addEventListener('click', dismissLead));
   dialog.addEventListener('cancel', event => { event.preventDefault(); dismissLead(); });
   dialog.addEventListener('click', event => {
@@ -93,12 +117,14 @@
     const box = dialog.getBoundingClientRect();
     if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dismissLead();
   });
-  document.querySelectorAll('[data-lead-continue]').forEach(link => link.addEventListener('click', () => { if (submitted) dialog.close(); }));
+  dialog.addEventListener('close', () => {
+    if (!alreadySubmitted()) document.querySelector('#community-entry-title').focus({ preventScroll: true });
+  });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (submit.disabled || !form.reportValidity()) return;
     submit.disabled = true;
-    submit.textContent = 'Saving your enquiry…';
+    submit.textContent = 'Saving your registration…';
     error.textContent = '';
     try {
       const token = await (tokenPromise || getToken());
@@ -111,28 +137,24 @@
         body: JSON.stringify({ requestId, name: values.get('name'), email: values.get('email'), phone: values.get('phone'), country: values.get('country'), city: values.get('city'), consent: values.get('consent') === 'on', website: values.get('website'), source: campaign ? `${source} / ${campaign}` : source })
       });
       const result = await response.json();
-      if (!response.ok || result.ok !== true) throw new Error(result.error || 'We could not save your enquiry. Please try again.');
+      if (!response.ok || result.ok !== true) throw new Error(result.error || 'We could not save your registration. Please try again.');
       submitted = true;
-      remember(submittedKey, 30 * day);
-      document.querySelector('#lead-halfway-note').hidden = true;
+      remember();
       form.reset(); requestId = newRequestId(); tokenPromise = null;
-      formView.hidden = true; successView.hidden = false;
-      document.querySelector('#lead-next-step').focus();
+      revealLanding(true);
+      if (dialog.open) dialog.close();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.querySelector('#main').focus({ preventScroll: true });
     } catch (problem) {
       tokenPromise = null;
       error.textContent = problem.message || 'Please try again or message Sky Team on Facebook.';
-      error.scrollIntoView({ block: 'nearest' });
+      if (dialog.open) error.scrollIntoView({ block: 'nearest' });
     } finally {
       submit.disabled = false;
-      submit.innerHTML = 'Help me get started <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>';
+      submit.innerHTML = submitLabel;
     }
   });
-  function showTimedReminder() {
-    dismissed = dismissed || remembered(dismissedKey);
-    if (reminderDue && !alreadySubmitted() && !dismissed && document.visibilityState === 'visible' && !document.querySelector('dialog[open], .reel-frame iframe, #video-frame iframe')) openLead('landing:auto');
-  }
-  setTimeout(() => { reminderDue = true; showTimedReminder(); }, 10000);
-  document.addEventListener('visibilitychange', showTimedReminder);
-  document.querySelectorAll('.policy-dialog').forEach(policy => policy.addEventListener('close', showTimedReminder));
-  if (submitted) { formView.hidden = true; successView.hidden = false; }
+  // The welcome screen is a browser flow, not authentication or a content-security boundary.
+  if (alreadySubmitted()) revealLanding();
+  else openVideo('landing:welcome');
 })();
