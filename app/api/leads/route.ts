@@ -1,9 +1,12 @@
-import { allowSubmission, CONSENT_VERSION, db, json, readJson, sameOrigin, validateLead, verifyFormToken } from '@/lib/leads';
+import { allowSubmission, CONSENT_VERSION, db, readJson, validateLead, verifyFormToken } from '@/lib/leads';
+import { leadJson, leadOriginAllowed, leadPreflight } from '@/lib/lead-origin';
 export const dynamic = 'force-dynamic';
+export function OPTIONS(request: Request) { return leadPreflight(request, 'POST'); }
 export async function POST(request: Request) {
-  if (!sameOrigin(request)) return json({ error: 'Submit the form from the Sky Team website.' }, 403);
+  const json = (value: unknown, status = 200) => leadJson(request, value, status);
+  if (!leadOriginAllowed(request)) return json({ error: 'Submit the form from the Sky Team website.' }, 403);
   try {
-    if (!await verifyFormToken(request.headers.get('x-sky-lead-token'))) return json({ error: 'Your form session expired. Please close and reopen the form.' }, 403);
+    if (!await verifyFormToken(request.headers.get('x-sky-lead-token'))) return json({ error: 'Your form session expired. Please try again.' }, 403);
     const value = await readJson(request);
     if (typeof value.website === 'string' && value.website) return json({ ok: true });
     let lead: ReturnType<typeof validateLead>;

@@ -24,6 +24,21 @@ export async function owner() {
 export async function ownerDenial() {
   return await owner() ? null : json({ error: 'Sign in with the Sky Team owner account to access the lead manager.' }, 403);
 }
+export type CRMRole = 'owner' | 'member' | 'viewer';
+export async function crmRole(): Promise<CRMRole | null> {
+  const user = await getChatGPTUser();
+  if (!user) return null;
+  const email = user.email.trim().toLowerCase();
+  if (email === env.CRM_OWNER_EMAIL?.trim().toLowerCase()) return 'owner';
+  try {
+    const access = await db().prepare('SELECT role FROM crm_access WHERE email = ?').bind(email).first<{ role: string }>();
+    return access?.role === 'member' || access?.role === 'viewer' ? access.role : null;
+  } catch { return null; }
+}
+export async function crmDenial(edit = false) {
+  const role = await crmRole();
+  return role && (!edit || role !== 'viewer') ? null : json({ error: edit ? 'Follow-up access is required to change lead records.' : 'Sign in with an authorized Sky Team account to access the lead manager.' }, 403);
+}
 export async function readJson(request: Request) {
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) throw new Error('Expected a JSON submission.');
   if (Number(request.headers.get('content-length') || 0) > 12000) throw new Error('Submission is too large.');

@@ -8,6 +8,13 @@
       "when": 1793250355977,
       "tag": "0000_unknown_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793400045879,
+      "tag": "0001_cold_wind_dancer",
+      "breakpoints": true
     }
   ]
 }
