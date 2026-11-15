@@ -13,7 +13,7 @@ test('Pages artifact resolves project-path assets and keeps registration and CRM
   assert.ok(html.includes(`content="${config.siteUrl}"`));
   assert.ok(html.includes(`content="${new URL('assets/sky-hero.webp', config.siteUrl).href}"`));
   const top = (await readdir(output)).sort();
-  assert.deepEqual(top, ['.nojekyll', 'app.js', 'assets', 'index.html', 'lead-form.css', 'lead-form.js', 'overview-player.js', 'overview-popup.css', 'styles.css'].sort());
+  assert.deepEqual(top, ['.nojekyll', 'app.js', 'assets', 'index.html', 'lead-form.css', 'lead-form.js', 'overview-player.js', 'overview-popup.css', 'skyteam-aurora.css', 'styles.css'].sort());
   assert.deepEqual((await readdir(resolve(output, 'assets'))).sort(), ['sky-hero.webp', 'sky-logo.png']);
   const paths = [...html.matchAll(/(?:src|href)="([^"#]+)"/g)].map(match => match[1]).filter(path => !/^(?:https?:|mailto:|tel:)/.test(path));
   for (const path of paths) {

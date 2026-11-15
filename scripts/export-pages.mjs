@@ -21,7 +21,7 @@ await writeFile(join(output, 'index.html'), html);
 await writeFile(join(output, '.nojekyll'), '');
 // Publish only the landing files. Server code, local configuration and records
 // are never inputs to the Pages artifact.
-for (const file of ['styles.css', 'lead-form.css', 'overview-popup.css', 'app.js', 'overview-player.js', 'lead-form.js']) {
+for (const file of ['styles.css', 'lead-form.css', 'overview-popup.css', 'skyteam-aurora.css', 'app.js', 'overview-player.js', 'lead-form.js']) {
   await cp(join(root, 'public', file), join(output, file));
 }
 await mkdir(join(output, 'assets'), { recursive: true });
