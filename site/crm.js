@@ -163,8 +163,9 @@
   async function loadTeam() {
     const body = $('#team-rows');
     try {
-      const { owners, team } = await api('/api/crm/team');
-      body.replaceChildren(...owners.map(o => el('tr', {}, el('td', { textContent: o }), el('td', {}, el('span', { className: 'pill approved', textContent: 'owner' })), el('td', {}, el('small', { textContent: 'Site settings' })), el('td'))));
+      const { owners, managers = [], team } = await api('/api/crm/team');
+      const fixed = (who, role) => el('tr', {}, el('td', { textContent: who }), el('td', {}, el('span', { className: `pill ${role === 'owner' ? 'approved' : 'contacted'}`, textContent: role })), el('td', {}, el('small', { textContent: 'Site settings' })), el('td'));
+      body.replaceChildren(...owners.map(o => fixed(o, 'owner')), ...managers.map(m => fixed(m, 'manager')));
       for (const t of team) {
         const remove = el('button', { className: 'btn small danger', textContent: 'Remove' });
         remove.addEventListener('click', async () => {

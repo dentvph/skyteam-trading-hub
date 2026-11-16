@@ -26,6 +26,8 @@
   "vars": {
     // Who may sign in to the CRM as owner. Comma-separated. Not secret.
     "OWNER_EMAILS": "dennis@skyteamtradinghub.com",
+    // Managers: update contacts and approve members (no delete/export/team changes).
+    "MANAGER_EMAILS": "jong@skyteamtradinghub.com,support@skyteamtradinghub.com",
     "EMAIL_FROM": "SkyTeam Trading Hub <notifications@skyteamtradinghub.com>",
     "EMAIL_REPLY_TO": "support@skyteamtradinghub.com",
     // Extra sites allowed to post registrations (e.g. the GitHub Pages copy).

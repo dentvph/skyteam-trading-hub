@@ -137,6 +137,16 @@ test('member journey: request → approve in CRM → sign in → journal → rev
   assert.equal((await owner('/api/crm/me')).status, 401);
 });
 
+test('Jong and support sign in as managers', async () => {
+  for (const who of ['jong@skyteamtradinghub.com', 'support@skyteamtradinghub.com']) {
+    const c = client();
+    await signIn(c, 'team', who);
+    assert.equal((await c('/api/crm/me')).data.user.role, 'manager');
+    assert.equal((await c('/api/crm/leads')).status, 200);
+    assert.equal((await c('/api/crm/team')).status, 403);
+  }
+});
+
 test('owner can add an already-approved member (migration path)', async () => {
   const owner = client();
   await signIn(owner, 'team', OWNER);

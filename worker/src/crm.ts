@@ -1,5 +1,5 @@
 import { createSession, endSession, requireTeam, startChallenge, teamRole, verifyChallenge } from "./auth";
-import { Env, HttpError, clientIp, email, json, nowIso, ownerEmails, rateLimit, readJson, str, text } from "./util";
+import { Env, HttpError, clientIp, email, json, managerEmails, nowIso, ownerEmails, rateLimit, readJson, str, text } from "./util";
 
 const LEAD_STATUSES = ["new", "contacted", "registered", "joined", "archived"];
 const ALL = ["owner", "manager", "viewer"] as const;
@@ -164,7 +164,7 @@ export async function addMember(env: Env, request: Request): Promise<Response> {
 export async function listTeam(env: Env, request: Request): Promise<Response> {
   await requireTeam(env, request, ["owner"]);
   const rows = await env.DB.prepare("SELECT email, role, added_by, created_at FROM team ORDER BY created_at").all();
-  return json({ owners: ownerEmails(env), team: rows.results });
+  return json({ owners: ownerEmails(env), managers: managerEmails(env), team: rows.results });
 }
 
 export async function saveTeam(env: Env, request: Request): Promise<Response> {
@@ -173,7 +173,7 @@ export async function saveTeam(env: Env, request: Request): Promise<Response> {
   const address = email(body.email);
   const role = String(body.role);
   if (!["manager", "viewer"].includes(role)) throw new HttpError(400, "Choose manager or viewer.");
-  if (ownerEmails(env).includes(address)) throw new HttpError(400, "That person is already an owner.");
+  if (ownerEmails(env).includes(address) || managerEmails(env).includes(address)) throw new HttpError(400, "That person already has access in the site settings.");
   await env.DB.prepare(
     "INSERT INTO team (email, role, added_by, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(email) DO UPDATE SET role = ?2",
   ).bind(address, role, user.email, nowIso()).run();

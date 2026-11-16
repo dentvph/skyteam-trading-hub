@@ -1,6 +1,6 @@
 import { sendCodeEmail } from "./email";
 import {
-  Env, HttpError, cookie, getCookie, hmac, json, nowIso, ownerEmails, randomToken, safeEqual, secret, sha256,
+  Env, HttpError, cookie, getCookie, hmac, json, managerEmails, nowIso, ownerEmails, randomToken, safeEqual, secret, sha256,
 } from "./util";
 
 export type Kind = "member" | "team";
@@ -95,6 +95,7 @@ async function sessionSubject(env: Env, request: Request, kind: Kind): Promise<s
 /** Owner list comes from configuration; managers/viewers from the team table. Checked on every request. */
 export async function teamRole(env: Env, emailAddress: string): Promise<TeamRole | null> {
   if (ownerEmails(env).includes(emailAddress)) return "owner";
+  if (managerEmails(env).includes(emailAddress)) return "manager";
   const row = await env.DB.prepare("SELECT role FROM team WHERE email = ?1").bind(emailAddress).first<{ role: TeamRole }>();
   return row?.role ?? null;
 }

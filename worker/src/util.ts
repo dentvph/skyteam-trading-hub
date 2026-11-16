@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   OWNER_EMAILS: string;
+  MANAGER_EMAILS?: string;
   EMAIL_FROM: string;
   EMAIL_REPLY_TO?: string;
   ALLOWED_ORIGINS?: string;
@@ -140,6 +141,10 @@ export function cookie(name: string, value: string, maxAgeSeconds: number, secur
 
 export function ownerEmails(env: Env): string[] {
   return (env.OWNER_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+}
+
+export function managerEmails(env: Env): string[] {
+  return (env.MANAGER_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 }
 
 export function allowedOrigins(env: Env): string[] {
