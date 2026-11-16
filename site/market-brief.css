@@ -1,0 +1,16 @@
+.market-brief{margin-top:30px;padding:24px 25px 20px;border:1px solid #ccdaeb;border-radius:12px;background:linear-gradient(150deg,#f3f8ff 0%,#fff 78%);box-shadow:0 15px 36px rgba(18,50,85,.06)}
+.market-brief-heading{display:flex;align-items:center;gap:9px;margin-bottom:13px;color:#336da8;font-size:9px;font-weight:700;letter-spacing:1.3px}
+.market-brief-dot{height:7px;width:7px;border-radius:50%;background:#3698ff;box-shadow:0 0 0 4px rgba(54,152,255,.12)}
+.market-brief h3{font-size:23px;line-height:1.2;font-weight:600;letter-spacing:-.6px;margin:0 0 10px;color:#142941}
+.market-brief>p{font-size:12px;line-height:1.7;color:#617389;margin:0 0 14px}
+.market-brief ul{list-style:none;padding:0;margin:0}
+.market-brief li{border-top:1px solid #dce6f0}
+.market-brief li a{display:flex;justify-content:space-between;gap:12px;padding:13px 0;color:#214f80;align-items:center}
+.market-brief li a:hover strong{text-decoration:underline}
+.market-brief li strong,.market-brief li small{display:block}
+.market-brief li strong{font-size:12px;font-weight:700}
+.market-brief li small{font-size:10px;line-height:1.5;color:#697b90;margin-top:4px}
+.market-brief-tip{margin-top:7px;padding:13px 15px;border-left:3px solid #3a91e6;background:#eaf3fd;display:grid;gap:4px}
+.market-brief-tip strong{font-size:10px;color:#205b97}
+.market-brief-tip span{font-size:10px;line-height:1.6;color:#4a6682}
+@media(max-width:720px){.market-brief{padding:21px 20px;margin-top:25px}.market-brief h3{font-size:22px}}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team workspace — SkyTeam Trading Hub</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/hub.css">
+<script src="/crm.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/sky-logo.png" alt="" width="42" height="42"><span><b>SKY TEAM</b><small>PRIVATE WORKSPACE</small></span></a>
+    <nav><span class="dim" id="who"></span><button class="btn small ghost" id="logout" hidden>Sign out</button></nav>
+  </header>
+
+  <main id="login-view" class="login" hidden>
+    <section>
+      <p class="eyebrow">A clearer view of every conversation</p>
+      <h1>Your Sky Team workspace.</h1>
+      <p class="muted">Contacts, member approvals and team access in one place. Only the owner and authorised team members can sign in.</p>
+    </section>
+    <section class="card">
+      <h2>Sign in</h2>
+      <form id="email-form">
+        <div class="msg" id="login-msg" role="alert"></div>
+        <label>SkyTeam team email<input name="email" type="email" required autocomplete="username" placeholder="you@skyteamtradinghub.com"></label>
+        <button class="btn wide" id="email-submit">Email me a sign-in code →</button>
+      </form>
+      <form id="code-form" hidden>
+        <div class="msg info" id="code-info"></div>
+        <div class="msg" id="code-msg" role="alert"></div>
+        <label>6-digit code<input name="code" class="code-input" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required></label>
+        <button class="btn wide" id="code-submit">Sign in →</button>
+        <p class="footnote"><button type="button" class="link" id="code-restart">Use a different email</button> · Codes expire in 10 minutes.</p>
+      </form>
+      <p class="footnote">No password to remember: each sign-in sends a one-time code to your team email.</p>
+    </section>
+  </main>
+
+  <main id="app-view" class="page" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="leads">Contacts</button>
+      <button role="tab" aria-selected="false" data-tab="members">Member requests <span id="pending-badge"></span></button>
+      <button role="tab" aria-selected="false" data-tab="team" id="team-tab" hidden>Team access</button>
+    </div>
+
+    <section data-panel="leads">
+      <div class="toolbar">
+        <input type="search" id="lead-q" placeholder="Search name, email, phone, country or city">
+        <select id="lead-status"><option value="">All stages</option><option value="new">New</option><option value="contacted">Contacted</option><option value="registered">Registered</option><option value="joined">Joined</option><option value="archived">Archived</option></select>
+        <a class="btn small ghost" id="export" hidden>Export CSV</a>
+      </div>
+      <div class="stats" id="lead-stats"></div>
+      <table class="table"><thead><tr><th>Contact</th><th>Location</th><th>Opt-ins</th><th>Stage</th><th>Received</th></tr></thead><tbody id="lead-rows"></tbody></table>
+      <p class="dim" id="lead-more" hidden>Showing the newest 100. Narrow your search to find older contacts.</p>
+    </section>
+
+    <section data-panel="members" hidden>
+      <div class="toolbar">
+        <select id="member-status"><option value="">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="revoked">Revoked</option></select>
+        <span style="flex:1"></span>
+        <button class="btn small" id="add-member-toggle">+ Add approved member</button>
+      </div>
+      <form id="add-member" class="card" hidden style="margin-bottom:18px">
+        <h3>Add an approved member</h3>
+        <p class="dim">For members you've already verified (for example, moving them over from the old site).</p>
+        <div class="msg" role="alert"></div>
+        <div class="grid3">
+          <label>Full name<input name="name" required minlength="2" maxlength="120"></label>
+          <label>VT Markets email<input name="email" type="email" required></label>
+          <label>VT Markets UID<input name="uid" required minlength="3" maxlength="64"></label>
+        </div>
+        <label>Note (optional)<input name="note" maxlength="1000"></label>
+        <button class="btn">Add member</button>
+      </form>
+      <table class="table"><thead><tr><th>Member</th><th>VT UID</th><th>Status</th><th>Requested</th><th></th></tr></thead><tbody id="member-rows"></tbody></table>
+    </section>
+
+    <section data-panel="team" hidden>
+      <div class="card" style="margin-bottom:18px">
+        <h3>Give someone access</h3>
+        <p class="dim"><b>Manager</b>: can update contacts and approve members. <b>Viewer</b>: read-only. Only owners can delete, export or change team access.</p>
+        <form id="team-form" class="toolbar" style="margin:0">
+          <input name="email" type="email" required placeholder="jong@skyteamtradinghub.com">
+          <select name="role"><option value="manager">Manager</option><option value="viewer">Viewer</option></select>
+          <button class="btn small">Save access</button>
+        </form>
+        <div class="msg" id="team-msg" role="alert"></div>
+      </div>
+      <table class="table"><thead><tr><th>Email</th><th>Role</th><th>Added</th><th></th></tr></thead><tbody id="team-rows"></tbody></table>
+    </section>
+  </main>
+  <footer class="footer">Contact records are private to the owner and authorised team. Members' journals are never shown here.</footer>
+</div>
+</body>
+</html>

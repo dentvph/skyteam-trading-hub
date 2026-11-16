@@ -1,0 +1,38 @@
+{
+  // SkyTeam Trading Hub on Cloudflare Workers.
+  // Static pages live in ./site; the Worker only answers /api/*.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "skyteam-trading-hub",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "f1f9f7c57466f0371508738e25ee9c09",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "skyteam-db",
+      // Filled in by the deploy workflow (it creates the database the first time).
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Who may sign in to the CRM as owner. Comma-separated. Not secret.
+    "OWNER_EMAILS": "dennis@skyteamtradinghub.com",
+    "EMAIL_FROM": "SkyTeam Trading Hub <notifications@skyteamtradinghub.com>",
+    "EMAIL_REPLY_TO": "support@skyteamtradinghub.com",
+    // Extra sites allowed to post registrations (e.g. the GitHub Pages copy).
+    "ALLOWED_ORIGINS": "https://dentvph.github.io"
+  },
+  "observability": { "enabled": true }
+  // Secrets (set by the deploy workflow, never committed):
+  //   RESEND_API_KEY  – sends one-time sign-in codes
+  //   SESSION_SECRET  – signs registration tokens
+}
