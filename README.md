@@ -13,10 +13,15 @@ The SkyTeam website, Member Hub and team CRM, running on Cloudflare Workers with
 
 There are no passwords. Members and team sign in with a 6-digit code emailed through Resend from `notifications@skyteamtradinghub.com`. Codes expire after 10 minutes, work once and lock after 5 wrong tries. Only hashes of codes and session cookies are stored.
 
-- **Owners** are listed in `OWNER_EMAILS` in `wrangler.jsonc`.
+- **Owners** are listed in `OWNER_EMAILS` and fixed **managers** in `MANAGER_EMAILS`, both in `wrangler.jsonc`.
 - **Managers** (edit contacts, approve members) and **viewers** (read-only) are added by an owner in CRM → Team access.
 - **Members** must be approved in CRM → Member requests (or added directly with "+ Add approved member"). Revoking ends their session immediately.
 - Members' journals are private: the CRM has no access to them.
+
+## Guides
+
+- [docs/SETUP.md](docs/SETUP.md): putting this repository on GitHub, secrets, first publish
+- [docs/DOMAIN-SWITCH.md](docs/DOMAIN-SWITCH.md): moving skyteamtradinghub.com from the old ChatGPT site
 
 ## Layout
 
