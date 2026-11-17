@@ -1,49 +1,45 @@
-# Dependencies
-/node_modules/
-/.pnp
-.pnp.*
-# Keep authored Yarn tooling if the project adopts Yarn.
-/.yarn/*
+
 !/.yarn/patches/
 !/.yarn/plugins/
 !/.yarn/releases/
 !/.yarn/versions/
-
+# Checkout-local tool state
+# Dependencies
+# Document names only; runtime values remain private.
 # Generated builds and framework state
-/dist/
-/.next/
-/.vinext/
-/out/
-/pages-dist/
-next-env.d.ts
-*.tsbuildinfo
-
-# Test output
-/coverage/
-
+# Keep authored Yarn tooling if the project adopts Yarn.
+# Local environment and keys
+# OS metadata
 # Package-manager logs
+# Test output
+# Workspace scaffolding and publication archives
+*.pem
+*.tsbuildinfo
+.DS_Store
+.dev.vars
+.dev.vars*
+.env*
+.pnp.*
+.pnpm-debug.log*
+.wrangler/
+/.agents/
+/.codex/
+/.next/
+/.pnp
+/.sites-runtime/
+/.vinext/
+/.wrangler/
+/.yarn/*
+/coverage/
+/dist/
+/node_modules/
+/out/
+/outputs/
+/pages-dist/
+/work/
+next-env.d.ts
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-
-# Local environment and keys
-.env*
-.dev.vars*
-*.pem
-
-# Checkout-local tool state
-/.wrangler/
-/.sites-runtime/
-
-# Workspace scaffolding and publication archives
-/.agents/
-/.codex/
-/outputs/
-/work/
-
-# OS metadata
-.DS_Store
-
-# Document names only; runtime values remain private.
 !.env.example

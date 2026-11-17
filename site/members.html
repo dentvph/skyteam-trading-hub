@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Member Hub — SkyTeam Trading Hub</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/hub.css">
+<script src="/members.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/sky-logo.png" alt="" width="42" height="42"><span><b>SKYTEAM</b><small>MEMBER HUB</small></span></a>
+    <nav><a href="/market-watch">Market Watch</a><a href="/">← SkyTeam home</a><button class="btn small ghost" id="logout" hidden>Sign out</button></nav>
+  </header>
+
+  <!-- Signed out -->
+  <main id="login-view" class="login" hidden>
+    <section>
+      <p class="eyebrow">Your space to keep growing</p>
+      <h1>A clearer mind.<br>A stronger routine.</h1>
+      <p class="muted">Your lessons, preparation and reflections. All together in the SkyTeam Member Hub.</p>
+      <ul><li>01 Learn with purpose</li><li>02 Prepare with a checklist</li><li>03 Reflect in your private journal</li></ul>
+      <p class="eyebrow" style="margin-top:28px">Learn first. Trade responsibly.</p>
+    </section>
+    <section class="card">
+      <p class="eyebrow">◇ Approved members only</p>
+      <div class="switch" role="group" aria-label="Member access options">
+        <button type="button" data-view="signin" aria-pressed="true">Member sign-in</button>
+        <button type="button" data-view="request" aria-pressed="false">Request access</button>
+      </div>
+
+      <div id="signin-panel">
+        <h2>Member sign-in.</h2>
+        <p class="muted">Already approved by Dennis or Coach Jong? Enter your approved email or VT Markets UID. We'll email you a one-time code. No password needed.</p>
+        <form id="identifier-form">
+          <div class="msg" id="signin-msg" role="alert"></div>
+          <label>Approved email or VT Markets UID<input name="identifier" required minlength="3" maxlength="254" autocomplete="username" spellcheck="false"></label>
+          <button class="btn wide" id="identifier-submit">Email me a sign-in code →</button>
+        </form>
+        <form id="code-form" hidden>
+          <div class="msg info" id="code-info"></div>
+          <div class="msg" id="code-msg" role="alert"></div>
+          <label>6-digit code<input name="code" class="code-input" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required></label>
+          <button class="btn wide" id="code-submit">Sign in →</button>
+          <p class="footnote"><button type="button" class="link" id="code-restart">Use a different email or UID</button> · Codes expire in 10 minutes.</p>
+        </form>
+        <p class="footnote">Membership needs a verified SkyTeam referral and UID, plus admin approval. A UID alone never grants access. SkyTeam will never ask for your broker password.</p>
+      </div>
+
+      <div id="request-panel" hidden>
+        <h2>Request access.</h2>
+        <p class="muted">Opened your VT Markets account with the SkyTeam referral? Send your details and the team will verify your UID.</p>
+        <form id="request-form">
+          <div class="msg" id="request-msg" role="alert"></div>
+          <label>Full name<input name="name" required minlength="2" maxlength="120" autocomplete="name"></label>
+          <label>VT Markets registered email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+          <label>VT Markets UID<input name="uid" required minlength="3" maxlength="64" spellcheck="false" placeholder="e.g. 12345678"></label>
+          <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <label class="check"><input type="checkbox" name="consent" required><span>I agree that SkyTeam may store my name, email and UID to review my membership and contact me about it.</span></label>
+          <button class="btn wide" id="request-submit">Submit UID for review →</button>
+        </form>
+        <p class="footnote">New to VT Markets? Use the registration guide on the <a href="/#registration">SkyTeam home page</a>, or message us on <a href="https://www.facebook.com/SkyTeamTradingHub" target="_blank" rel="noopener">Facebook</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Signed in -->
+  <main id="hub-view" class="page" hidden>
+    <p class="eyebrow">SkyTeam Member Hub</p>
+    <h1 id="hello">Welcome back.</h1>
+    <p class="muted">Learn the idea, plan the risk, then reflect on the decision. Your journal is private — the SkyTeam team can't see it.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="lessons">Lessons</button>
+      <button role="tab" aria-selected="false" data-tab="checklist">Pre-trade checklist</button>
+      <button role="tab" aria-selected="false" data-tab="review">After-trade review</button>
+      <button role="tab" aria-selected="false" data-tab="journal">My journal</button>
+    </div>
+
+    <section data-panel="lessons">
+      <div class="lessons">
+        <details class="lesson" open><summary><span>01</span><b>Risk-management fundamentals</b></summary><div class="body">
+          <p>Before any entry, decide what you're willing to lose — and whether you're willing to lose it at all.</p>
+          <ul><li><b>Position size</b> sets how much each price move is worth to you. Check your broker's contract size for gold, NASDAQ and US30; they differ.</li>
+          <li><b>Stop-loss plan</b>: write where the idea is wrong <i>before</i> you enter. A stop is a plan, not a guarantee — prices can gap past it.</li>
+          <li><b>Capital protection</b>: many traders limit risk per idea to a small share of their account and set a daily stop for themselves.</li></ul>
+          <p>Practise sizing on a demo account until the maths feels routine.</p></div></details>
+        <details class="lesson"><summary><span>02</span><b>Trading psychology</b></summary><div class="body">
+          <ul><li><b>Discipline</b> means following the plan you wrote when you were calm.</li>
+          <li><b>Patience</b>: no setup is also a decision. Standing aside is a valid trade.</li>
+          <li><b>Notice your state</b>: after a loss, a big win or a long day, decisions get faster and worse. Your review journal helps you spot this.</li></ul></div></details>
+        <details class="lesson"><summary><span>03</span><b>Market basics</b></summary><div class="body">
+          <ul><li><b>Start with the bigger picture</b>: daily and 4-hour charts show the trend and key areas; smaller timeframes show the detail.</li>
+          <li><b>Structure</b>: higher highs and higher lows describe an uptrend; lower highs and lower lows a downtrend. A break of that pattern is information, not a signal on its own.</li>
+          <li><b>News moves markets</b>: jobs, inflation and Fed decisions can move gold and indices quickly. Check <a href="/market-watch">Market Watch</a> before your session.</li></ul></div></details>
+        <details class="lesson"><summary><span>04</span><b>Beginner trading education</b></summary><div class="body">
+          <ul><li>Learn the terms: pip/point, spread, leverage, margin, lot size, stop-loss, take-profit.</li>
+          <li>Understand that leverage multiplies both gains <i>and</i> losses.</li>
+          <li>Use a demo account first. Results on demo don't guarantee results with real money, but the habits carry over.</li></ul></div></details>
+        <details class="lesson"><summary><span>05</span><b>SkyTeam community orientation</b></summary><div class="body">
+          <p>Bring questions to the community and to Coach Jong. Share your process, not just your outcomes. Message us on <a href="https://www.facebook.com/SkyTeamTradingHub" target="_blank" rel="noopener">Facebook</a> to ask what to study next.</p>
+          <p class="dim">Educational information only — not financial advice or trade signals. Trading involves risk. No guaranteed profits.</p></div></details>
+      </div>
+    </section>
+
+    <section data-panel="checklist" hidden>
+      <div class="card">
+        <p class="eyebrow">01 / Prepare — Aral muna. May plano bago pindot.</p>
+        <h2>Before the trade</h2>
+        <p class="muted">Fill this in before making a decision. Use demo practice while learning.</p>
+        <form id="pretrade-form">
+          <div class="msg" role="alert"></div>
+          <div class="grid3">
+            <label>Date<input type="date" name="entryDate" required></label>
+            <label>Instrument / symbol<input name="instrument" maxlength="40" placeholder="XAUUSD"></label>
+            <label>Session / timezone<input name="session" maxlength="60" placeholder="New York · ET"></label>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" name="check-context"><span>I recorded the context.<small>Instrument, timeframe and session are clear in my notes.</small></span></label>
+            <label class="check"><input type="checkbox" name="check-calendar"><span>I checked the economic calendar.<small>Record the source and release time; check the correct timezone.</small></span></label>
+            <label class="check"><input type="checkbox" name="check-invalidation"><span>I wrote what would invalidate the idea.<small>An entry idea also needs a reason to exit or stand aside.</small></span></label>
+            <label class="check"><input type="checkbox" name="check-terms"><span>I reviewed the order and account terms.<small>Check contract size, position size, leverage and trading costs.</small></span></label>
+          </div>
+          <label>Setup idea / timeframe / reason<textarea name="setup" maxlength="2000"></textarea></label>
+          <label>Invalidation / planned exit<textarea name="invalidation" maxlength="2000"></textarea></label>
+          <div class="grid2">
+            <label>Position size + unit<input name="position" maxlength="2000"></label>
+            <label>Planned loss estimate + currency<input name="lossEstimate" maxlength="2000"></label>
+          </div>
+          <label>When will I pause or stand aside?<textarea name="pause" maxlength="2000"></textarea></label>
+          <p class="dim">An estimate is not a guaranteed cap. This checklist does not calculate or limit risk.</p>
+          <button class="btn">Save to my journal</button>
+        </form>
+      </div>
+    </section>
+
+    <section data-panel="review" hidden>
+      <div class="card">
+        <p class="eyebrow">02 / Review</p>
+        <h2>After the decision</h2>
+        <p class="muted">Review one trade or one decision to stay out. Focus on the process.</p>
+        <form id="review-form">
+          <div class="msg" role="alert"></div>
+          <div class="grid3">
+            <label>Date<input type="date" name="entryDate" required></label>
+            <label>Instrument / symbol<input name="instrument" maxlength="40"></label>
+            <label>Session / timezone<input name="session" maxlength="60"></label>
+          </div>
+          <label>01 What was my plan?<textarea name="plan" maxlength="2000"></textarea></label>
+          <label>02 What did I actually do?<textarea name="actual" maxlength="2000"></textarea></label>
+          <label>03 Which rule did I follow or change? Why?<textarea name="rule" maxlength="2000"></textarea></label>
+          <label>04 What did I feel before the decision?<textarea name="feeling" maxlength="2000"></textarea></label>
+          <label>05 One lesson / one change for next time<textarea name="lesson" maxlength="2000"></textarea></label>
+          <p class="dim">A profitable outcome does not prove a good process; a loss still deserves review.</p>
+          <button class="btn">Save to my journal</button>
+        </form>
+      </div>
+    </section>
+
+    <section data-panel="journal" hidden>
+      <div class="toolbar"><h2 style="margin:0;flex:1">My journal</h2><span class="dim" id="journal-count"></span></div>
+      <div class="entries" id="entries"></div>
+    </section>
+  </main>
+
+  <footer class="footer">Educational information only — not financial advice or trade signals. Trading involves risk. © SkyTeam Trading Hub</footer>
+</div>
+</body>
+</html>
