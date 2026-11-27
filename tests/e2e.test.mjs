@@ -157,3 +157,58 @@ test('owner can add an already-approved member (migration path)', async () => {
   await signIn(member, 'member', `moved-${run}@example.com`);
   assert.equal((await member('/api/members/me')).data.member.uid, uid);
 });
+
+test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke frees the seat', async () => {
+  const { createHmac } = await import('node:crypto');
+  const owner = client(); await signIn(owner, 'team', OWNER);
+  const add = async (i) => {
+    const email = `beta-${run}-${i}@example.com`;
+    assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: `Beta Tester ${i}`, email, uid: `BETA${run}${i}` } })).status, 200);
+    const { data } = await owner('/api/crm/members?status=approved');
+    return { email, id: data.members.find(m => m.email === email).id };
+  };
+  const a = await add(0);
+  const member = client(); await signIn(member, 'member', a.email);
+  // Not a tester yet: no tab, no hand-off.
+  assert.equal((await member('/api/members/me')).data.member.beta, false);
+  assert.equal((await member('/api/members/terminal', { method: 'POST', body: {} })).status, 403);
+
+  // Managers can't hand out seats.
+  const jong = client(); await signIn(jong, 'team', 'jong@skyteamtradinghub.com');
+  assert.equal((await jong(`/api/crm/members/${a.id}/beta`, { method: 'POST', body: { on: true } })).status, 403);
+
+  const on = await owner(`/api/crm/members/${a.id}/beta`, { method: 'POST', body: { on: true } });
+  assert.equal(on.status, 200, JSON.stringify(on.data));
+  assert.equal((await member('/api/members/me')).data.member.beta, true);
+  const open = await member('/api/members/terminal', { method: 'POST', body: {} });
+  if (process.env.TERMINAL_SSO_SECRET) {
+    assert.equal(open.status, 200, JSON.stringify(open.data));
+    const t = new URL(open.data.url).searchParams.get('t');
+    const [payload, sig] = t.split('.');
+    const expect = createHmac('sha256', process.env.TERMINAL_SSO_SECRET).update(payload).digest('base64url');
+    assert.equal(sig, expect, 'hand-off is signed with the shared secret');
+    const p = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    assert.equal(p.email, a.email); assert.equal(p.aud, 'skyteam-terminal');
+    assert.ok(p.exp - p.iat <= 120 && p.jti.length >= 16);
+  } else {
+    assert.equal(open.status, 503, 'terminal not switched on without the secret');
+  }
+  // Cross-site requests can't mint a hand-off.
+  assert.equal((await member('/api/members/terminal', { method: 'POST', body: {}, origin: 'https://evil.example' })).status, 403);
+
+  // Fill the remaining seats, then the next one is refused.
+  const { data: count0 } = await owner('/api/crm/members');
+  const extra = [];
+  for (let i = 1; count0.betaCount + extra.length < count0.betaLimit; i++) {
+    const m = await add(i); extra.push(m);
+    assert.equal((await owner(`/api/crm/members/${m.id}/beta`, { method: 'POST', body: { on: true } })).status, 200);
+  }
+  const over = await add(99);
+  assert.equal((await owner(`/api/crm/members/${over.id}/beta`, { method: 'POST', body: { on: true } })).status, 409);
+
+  // Revoking the member frees the seat and ends the hand-off.
+  assert.equal((await owner(`/api/crm/members/${a.id}`, { method: 'POST', body: { action: 'revoke', note: '' } })).status, 200);
+  assert.equal((await member('/api/members/terminal', { method: 'POST', body: {} })).status, 401);
+  assert.equal((await owner(`/api/crm/members/${over.id}/beta`, { method: 'POST', body: { on: true } })).status, 200, 'seat freed');
+  for (const m of [...extra, over]) await owner(`/api/crm/members/${m.id}/beta`, { method: 'POST', body: { on: false } });
+});

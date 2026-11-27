@@ -8,6 +8,10 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   RESEND_API_KEY?: string;
   SESSION_SECRET?: string;
+  /** Premium Beta: public address of the Smart Terminal (Cloudflare Tunnel), e.g. https://terminal.skyteamtradinghub.com */
+  TERMINAL_URL?: string;
+  /** Premium Beta: shared secret that signs the hand-off to the terminal (same value in the terminal's config). */
+  TERMINAL_SSO_SECRET?: string;
   /** Local development only: return sign-in codes in the API response. */
   DEV_SHOW_CODES?: string;
 }

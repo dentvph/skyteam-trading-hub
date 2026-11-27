@@ -96,3 +96,15 @@ input::placeholder,textarea::placeholder{color:#7f97b2}
 .empty{color:var(--dim);padding:24px;text-align:center;border:1px dashed var(--line);border-radius:12px}
 .footer{border-top:1px solid var(--line);margin-top:48px;padding:22px 0 40px;font-size:12px;color:var(--dim)}
 .page{padding:40px 0}
+
+/* Premium Beta */
+.tabs .beta-tab{color:#ffd47a}
+.beta-hero{background:radial-gradient(120% 140% at 0% 0%,#3a2a0a 0%,#183554 45%,#0a192d 100%);border-color:#a8872f}
+.beta-hero h2{margin:0 0 8px;font-size:30px}
+.beta-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+.beta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+.beta-list{margin:0;padding-left:20px;line-height:1.55;color:var(--muted)}.beta-list li{margin:6px 0}.beta-list b{color:var(--text)}
+.beta-links{list-style:none;margin:0;padding:0;line-height:2}
+.beta-links a{color:var(--cyan);text-decoration:none}.beta-links a:hover{text-decoration:underline}
+@media (max-width:760px){.beta-grid{grid-template-columns:1fr}}
+.pill.beta{border-color:#a8872f;color:#ffd47a;margin-left:6px}

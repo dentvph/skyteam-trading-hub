@@ -1,6 +1,7 @@
 import * as crm from "./crm";
 import { economicCalendar, marketBrief } from "./feeds";
 import { createLead, leadToken, returningLead } from "./leads";
+import * as beta from "./beta";
 import * as members from "./members";
 import { Env, HttpError, allowedOrigins, json } from "./util";
 
@@ -19,6 +20,7 @@ const routes: [string, string, Handler][] = [
   ["POST", "/api/members/auth/verify", (env, req) => members.memberAuthVerify(env, req)],
   ["POST", "/api/members/logout", (env, req) => members.memberLogout(env, req)],
   ["GET", "/api/members/me", (env, req) => members.memberMe(env, req)],
+  ["POST", "/api/members/terminal", (env, req) => beta.openTerminal(env, req)],
   ["GET", "/api/members/journal", (env, req) => members.listJournal(env, req)],
   ["POST", "/api/members/journal", (env, req) => members.saveJournal(env, req)],
   ["PUT", "/api/members/journal/:id", (env, req, _c, id) => members.saveJournal(env, req, id)],
@@ -35,6 +37,7 @@ const routes: [string, string, Handler][] = [
   ["GET", "/api/crm/members", (env, req) => crm.listMembers(env, req)],
   ["POST", "/api/crm/members", (env, req) => crm.addMember(env, req)],
   ["POST", "/api/crm/members/:id", (env, req, _c, id) => crm.reviewMember(env, req, id)],
+  ["POST", "/api/crm/members/:id/beta", (env, req, _c, id) => beta.setBeta(env, req, id)],
   ["GET", "/api/crm/team", (env, req) => crm.listTeam(env, req)],
   ["POST", "/api/crm/team", (env, req) => crm.saveTeam(env, req)],
   ["DELETE", "/api/crm/team", (env, req) => crm.removeTeam(env, req)],
