@@ -1,18 +1,29 @@
-import { createSession, endSession, requireMember, startChallenge, verifyChallenge } from "./auth";
+import { createSession, endSession, requireMember, sessionSubject, startChallenge, verifyChallenge } from "./auth";
 import { betaStatus } from "./beta";
 import { Env, HttpError, clientIp, email, json, nowIso, rateLimit, readJson, str, text } from "./util";
 
 const UID = /^[A-Za-z0-9-]{3,64}$/;
 
 export async function accessRequest(env: Env, request: Request): Promise<Response> {
-  await rateLimit(env, `access:${clientIp(request)}`, 5, 3600);
   const body = await readJson(request);
-  if (typeof body.website === "string" && body.website.trim()) return json({ ok: true });
+  if (typeof body.website === "string" && body.website.trim()) return json({ ok: true });   // honeypot: bots fill it
   if (body.consent !== true) throw new HttpError(400, "Please confirm the consent box.");
   const name = str(body.name, "Name", { min: 2, max: 120, required: true });
   const address = email(body.email);
   const uid = str(body.uid, "VT Markets UID", { min: 3, max: 64, required: true });
   if (!UID.test(uid)) throw new HttpError(400, "Your UID should only contain letters, numbers or dashes.");
+  // Anti-spam: only complete requests count. 10 per hour from one connection, 3 per hour for one email.
+  // The team (signed in to the CRM in the same browser) can test without hitting the connection limit.
+  const team = await sessionSubject(env, request, "team").catch(() => null);
+  try {
+    if (!team) await rateLimit(env, `access:${clientIp(request)}`, 10, 3600);
+    await rateLimit(env, `access-email:${address}`, 3, 3600);
+  } catch (err) {
+    if (err instanceof HttpError && err.status === 429) {
+      throw new HttpError(429, "We already have several requests from you. Please wait about an hour before sending another; the team will review the one you sent.");
+    }
+    throw err;
+  }
 
   const existing = await env.DB.prepare(
     "SELECT id, email, vt_uid, status FROM members WHERE email = ?1 OR vt_uid = ?2",

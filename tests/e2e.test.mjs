@@ -269,6 +269,13 @@ test('CRM filters: prospects vs members in Contacts, new and beta views in Membe
   assert.ok(item, 'clash appears in the review queue');
   assert.equal((await owner(`/api/crm/leads/${item.id}`, { method: 'PATCH', body: { status: 'archived' } })).status, 200);
   assert.ok(!(await owner('/api/crm/members')).data.reviews.some(r => r.id === item.id), 'marked done leaves the queue');
+  // Anti-spam: one email can send 3 requests an hour; validation errors don't count.
+  const spam = client();
+  const req = (extra = {}) => spam('/api/members/access-request', { method: 'POST', body: { name: 'Spam Test', email: `spam-${run}@example.com`, uid: `SPAM${run}`, consent: true, website: '', ...extra } });
+  assert.equal((await req({ consent: false })).status, 400);
+  for (let i = 0; i < 3; i++) assert.equal((await req()).status, 200);
+  const blocked = await req();
+  assert.equal(blocked.status, 429); assert.match(blocked.data.error, /wait about an hour/);
 
   const fresh = await owner('/api/crm/members?status=new');
   assert.ok(fresh.data.members.some(m => m.email === memberEmail), 'added today shows under New this week');
