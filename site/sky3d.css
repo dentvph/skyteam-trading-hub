@@ -20,3 +20,9 @@
 .smart-terminal-badges span{font-size:10px;letter-spacing:1px;color:#ffe3a1;border:1px solid #a8872f77;background:#0b1424cc;border-radius:20px;padding:5px 10px;backdrop-filter:blur(6px)}
 @media(max-width:800px){.smart-terminal-grid{grid-template-columns:1fr;gap:34px}.smart-terminal-visual{height:330px}}
 @media (prefers-reduced-motion:reduce){.sky3d-layer{transition:none}}
+
+/* Reels: the 9:16 frame is height-limited, so center it (and its caption) inside the card instead of hugging the left edge */
+body .reel-card{display:flex;flex-direction:column;align-items:center}
+body .reel-card .reel-frame{width:100%;max-width:194px;margin-inline:auto}
+body .reel-card figcaption{width:100%;max-width:194px;padding-inline:0}
+@media(max-width:720px){body .reel-card .reel-frame,body .reel-card figcaption{max-width:none}}
