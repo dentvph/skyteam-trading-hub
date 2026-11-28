@@ -30,11 +30,17 @@ export async function accessRequest(env: Env, request: Request): Promise<Respons
     // file the request in CRM Contacts so the team can sort it out (wrong email, shared UID, typo...).
     const clash = existing.results.some((r) => r.vt_uid === uid) ? "UID already registered to another email" : "email already registered with another UID";
     const now = nowIso();
+    const note = `Member access request: ${clash}. Submitted UID: ${uid}. Check before approving.`;
+    // A resubmission of the same request (same email + UID) is not filed twice.
+    const dup = await env.DB.prepare(
+      "SELECT id FROM leads WHERE source = 'Member access request (needs review)' AND email = ?1 AND notes LIKE ?2 AND status != 'archived'",
+    ).bind(address, `%Submitted UID: ${uid}.%`).first();
+    if (dup) return json(received);
     await env.DB.prepare(
       `INSERT INTO leads (request_id, name, email, phone, country, city, consent_version, consent_at,
          email_opt_in, sms_opt_in, source, notes, created_at, updated_at)
        VALUES (?1, ?2, ?3, '', '', NULL, 'member-request', ?4, 0, 0, 'Member access request (needs review)', ?5, ?4, ?4)`,
-    ).bind(`member-req-${crypto.randomUUID()}`, name, address, now, `Member access request: ${clash}. Submitted UID: ${uid}. Check before approving.`).run();
+    ).bind(`member-req-${crypto.randomUUID()}`, name, address, now, note).run();
     return json(received);
   }
   await env.DB.prepare(
