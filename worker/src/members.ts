@@ -61,6 +61,15 @@ export async function memberMe(env: Env, request: Request): Promise<Response> {
 const PRETRADE_FIELDS = ["setup", "invalidation", "position", "lossEstimate", "pause"] as const;
 const REVIEW_FIELDS = ["plan", "actual", "rule", "feeling", "lesson"] as const;
 const CHECKS = ["context", "calendar", "invalidation", "terms"] as const;
+/** Account currencies for the daily P&L calendar (amounts are never converted or mixed). */
+export const CURRENCIES = ["USD", "CAD", "EUR", "GBP", "AUD", "PHP", "JPY", "CHF", "NZD", "SGD"] as const;
+
+function optNumber(v: unknown, label: string, min: number, max: number, integer = false): number | null {
+  if (v === undefined || v === null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/,/g, "").trim());
+  if (!Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) throw new HttpError(400, `Enter a valid ${label}.`);
+  return integer ? n : Math.round(n * 100) / 100;
+}
 
 function cleanEntry(body: Record<string, unknown>) {
   const kind = body.kind === "review" ? "review" : body.kind === "pretrade" ? "pretrade" : null;
@@ -69,6 +78,15 @@ function cleanEntry(body: Record<string, unknown>) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpError(400, "Enter a valid date.");
   const data: Record<string, unknown> = {};
   for (const f of kind === "pretrade" ? PRETRADE_FIELDS : REVIEW_FIELDS) data[f] = text(body[f], f, 2000);
+  if (kind === "review") {
+    // Optional daily-calendar result: net P&L after fees, trades closed, account currency.
+    const net = optNumber(body.net, "net result", -10_000_000, 10_000_000);
+    const trades = optNumber(body.trades, "number of trades", 0, 500, true);
+    const cur = String(body.currency ?? "USD").toUpperCase();
+    if (!(CURRENCIES as readonly string[]).includes(cur)) throw new HttpError(400, "Choose a supported currency.");
+    if (net !== null) { data.net = net; data.currency = cur; }
+    if (trades !== null) data.trades = trades;
+  }
   if (kind === "pretrade") {
     const checks = (body.checks && typeof body.checks === "object" ? body.checks : {}) as Record<string, unknown>;
     data.checks = Object.fromEntries(CHECKS.map((c) => [c, checks[c] === true]));
@@ -85,7 +103,7 @@ function cleanEntry(body: Record<string, unknown>) {
 export async function listJournal(env: Env, request: Request): Promise<Response> {
   const m = await requireMember(env, request);
   const rows = await env.DB.prepare(
-    "SELECT id, kind, entry_date, instrument, session, data, updated_at FROM journal WHERE member_id = ?1 ORDER BY entry_date DESC, id DESC LIMIT 200",
+    "SELECT id, kind, entry_date, instrument, session, data, updated_at FROM journal WHERE member_id = ?1 ORDER BY entry_date DESC, id DESC LIMIT 1000",
   ).bind(m.id).all();
   return json({ entries: rows.results.map((r) => ({ ...r, data: JSON.parse(String(r.data)) })) });
 }

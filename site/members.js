@@ -100,6 +100,7 @@
   function resetForm(form) {
     form.reset(); delete form.dataset.editId;
     form.querySelector('[name=entryDate]').value = today();
+    if (form.elements.currency) form.elements.currency.value = cal.cur;
     form.querySelector('button:not([type=button])').textContent = 'Save to my journal';
   }
   for (const [id, kind] of [['#pretrade-form', 'pretrade'], ['#review-form', 'review']]) {
@@ -124,17 +125,82 @@
   const LABELS = {
     setup: 'Setup idea / reason', invalidation: 'Invalidation / planned exit', position: 'Position size', lossEstimate: 'Planned loss estimate', pause: 'When I pause or stand aside',
     plan: 'My plan', actual: 'What I actually did', rule: 'Rule followed or changed', feeling: 'What I felt', lesson: 'Lesson / change for next time',
+    net: 'Net result after fees', trades: 'Trades closed', currency: 'Currency',
   };
+
+  // ---------- Daily P&L calendar ----------
+  const CURRENCIES = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'PHP', 'JPY', 'CHF', 'NZD', 'SGD'];
+  const store = { get: (k, d) => { try { return localStorage.getItem(k) || d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  const cal = { cur: store.get('sky.currency', 'USD'), month: null, day: null };
+  for (const sel of [$('#cal-currency'), $('#review-currency')]) {
+    for (const c of CURRENCIES) { const o = document.createElement('option'); o.value = o.textContent = c; sel.append(o); }
+    sel.value = cal.cur;
+  }
+  $('#cal-currency').addEventListener('change', e => { cal.cur = e.target.value; store.set('sky.currency', cal.cur); $('#review-currency').value = cal.cur; renderCalendar(); });
+  $('#review-currency').addEventListener('change', e => store.set('sky.currency', e.target.value));
+  const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const money = (n, cur) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? ` ${cur}` : '');
+  function moveMonth(step) { cal.month = new Date(cal.month.getFullYear(), cal.month.getMonth() + step, 1); cal.day = null; renderCalendar(); renderList(); }
+  $('#cal-prev').addEventListener('click', () => moveMonth(-1));
+  $('#cal-next').addEventListener('click', () => moveMonth(1));
+  $('#cal-all').addEventListener('click', () => { cal.day = null; renderCalendar(); renderList(); });
+
+  function dayTotals() {
+    const t = {};
+    for (const e of entries) {
+      if (e.kind !== 'review' || typeof e.data.net !== 'number' || (e.data.currency || 'USD') !== cal.cur) continue;
+      const d = (t[e.entry_date] ||= { net: 0, trades: 0, reviews: 0 });
+      d.net += e.data.net; d.trades += Number(e.data.trades || 0); d.reviews++;
+    }
+    return t;
+  }
+  function renderCalendar() {
+    if (!cal.month) { const n = new Date(); cal.month = new Date(n.getFullYear(), n.getMonth(), 1); }
+    const m = cal.month, key = ym(m), totals = dayTotals();
+    $('#cal-title').textContent = m.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+    const grid = $('#cal-grid'); grid.replaceChildren();
+    for (const w of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) { const h = document.createElement('div'); h.className = 'cal-wd'; h.textContent = w; grid.append(h); }
+    for (let i = 0; i < m.getDay(); i++) grid.append(Object.assign(document.createElement('div'), { className: 'cal-blank' }));
+    const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    let net = 0, win = 0, loss = 0; const todayKey = today();
+    for (let d = 1; d <= days; d++) {
+      const date = `${key}-${String(d).padStart(2, '0')}`, t = totals[date];
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'cal-day';
+      const hasNotes = entries.some(e => e.entry_date === date);
+      if (t) { net += t.net; if (t.net > 0) win++; else if (t.net < 0) loss++; b.classList.add(t.net > 0 ? 'pos' : t.net < 0 ? 'neg' : 'flat'); }
+      if (date === todayKey) b.classList.add('today');
+      if (cal.day === date) b.classList.add('sel');
+      b.setAttribute('aria-label', `${date}: ${t ? money(t.net, cal.cur) : 'no recorded result'}`);
+      b.innerHTML = `<span class="d">${d}</span><b>${t ? money(t.net) : '—'}</b><small>${t ? (t.trades ? `${t.trades} trade${t.trades === 1 ? '' : 's'}` : `${t.reviews} review${t.reviews === 1 ? '' : 's'}`) : hasNotes ? 'Notes only' : 'No trades'}</small>`;
+      b.addEventListener('click', () => { cal.day = cal.day === date ? null : date; renderCalendar(); renderList(); $('#journal-heading').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      grid.append(b);
+    }
+    $('#cal-net').textContent = money(Math.round(net * 100) / 100, cal.cur);
+    $('#cal-net').className = net > 0 ? 'g' : net < 0 ? 'r' : '';
+    $('#cal-win').textContent = win; $('#cal-loss').textContent = loss;
+    $('#cal-rate').textContent = win + loss ? `${Math.round(win / (win + loss) * 100)}%` : '—';
+  }
+
   let entries = [];
   async function loadJournal() {
     const list = $('#entries');
     list.innerHTML = '<p class="dim">Loading…</p>';
     try {
       entries = (await api('/api/members/journal')).entries;
-      $('#journal-count').textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`;
+      renderCalendar();
+      renderList();
+    } catch (err) { list.innerHTML = ''; const p = document.createElement('p'); p.className = 'msg error'; p.textContent = err.message; list.append(p); }
+  }
+  function renderList() {
+    const list = $('#entries');
+    const shown = cal.day ? entries.filter(e => e.entry_date === cal.day) : entries;
+    $('#journal-heading').textContent = cal.day ? `Entries for ${new Date(cal.day + 'T12:00').toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })}` : 'My journal';
+    $('#cal-all').hidden = !cal.day;
+    $('#journal-count').textContent = `${shown.length} entr${shown.length === 1 ? 'y' : 'ies'}`;
+    {
       list.replaceChildren();
-      if (!entries.length) { list.innerHTML = '<p class="empty">No entries yet. Start with the pre-trade checklist.</p>'; return; }
-      for (const e of entries) {
+      if (!shown.length) { list.innerHTML = `<p class="empty">${cal.day ? 'No entries on this day.' : 'No entries yet. Start with the pre-trade checklist.'}</p>`; return; }
+      for (const e of shown) {
         const card = document.createElement('article'); card.className = 'entry';
         const head = document.createElement('header');
         const title = document.createElement('div');
@@ -161,15 +227,16 @@
           dl.append(dt, dd);
         }
         for (const [k, v] of Object.entries(e.data)) {
-          if (k === 'checks' || !v) continue;
+          if (k === 'checks' || k === 'currency' || v === '' || v == null) continue;
           const dt = document.createElement('dt'); dt.textContent = LABELS[k] || k;
-          const dd = document.createElement('dd'); dd.textContent = v;
+          const dd = document.createElement('dd'); dd.textContent = k === 'net' ? money(v, e.data.currency || 'USD') : v;
+          if (k === 'net') dd.className = v > 0 ? 'g' : v < 0 ? 'r' : '';
           dl.append(dt, dd);
         }
         card.append(head, dl);
         list.append(card);
       }
-    } catch (err) { list.innerHTML = ''; const p = document.createElement('p'); p.className = 'msg error'; p.textContent = err.message; list.append(p); }
+    }
   }
   function editEntry(e) {
     const form = e.kind === 'pretrade' ? $('#pretrade-form') : $('#review-form');

@@ -108,3 +108,62 @@ input::placeholder,textarea::placeholder{color:#7f97b2}
 .beta-links a{color:var(--cyan);text-decoration:none}.beta-links a:hover{text-decoration:underline}
 @media (max-width:760px){.beta-grid{grid-template-columns:1fr}}
 .pill.beta{border-color:#a8872f;color:#ffd47a;margin-left:6px}
+
+/* Member Hub: sidebar layout */
+.hub-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:36px;align-items:start}
+.hub-side{position:sticky;top:20px;background:linear-gradient(180deg,#0f2a48e0,#081a30e6);border:1px solid #2c4a6c;border-radius:var(--r);padding:22px 14px;display:flex;flex-direction:column;gap:6px;min-height:calc(100vh - 140px)}
+.side-label{font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--cyan);margin:0 10px 12px}
+.tabs.side{flex-direction:column;flex-wrap:nowrap;border:0;margin:0;gap:4px}
+.tabs.side button,.side-link{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid transparent;border-radius:10px;padding:12px 12px;color:var(--muted);font-size:14px;text-decoration:none;background:none}
+.tabs.side button i,.side-link i{font-style:normal;width:18px;text-align:center;color:#7fb6e6}
+.tabs.side button:hover,.side-link:hover{background:#ffffff08;color:var(--text)}
+.tabs.side button[aria-selected=true]{background:#17375a;border-color:#3b6390;color:var(--text);border-bottom-color:#3b6390}
+.side-foot{margin-top:auto;border-top:1px solid #2c4a6c;padding-top:18px}
+.side-foot p:last-child{color:var(--muted);margin:0 10px;line-height:1.6}
+.hub-main{min-width:0}
+.hub-main>h1{margin-bottom:10px}
+.hub-main>.muted{margin-bottom:26px}
+@media(max-width:900px){
+  .hub-layout{grid-template-columns:1fr;gap:18px}
+  .hub-side{position:static;min-height:0;padding:10px;flex-direction:row;overflow-x:auto;gap:4px}
+  .hub-side .side-label,.side-foot{display:none}
+  .tabs.side{flex-direction:row}
+  .tabs.side button,.side-link{white-space:nowrap;width:auto;padding:10px 12px}
+}
+
+/* Daily P&L calendar */
+.cal-card{margin-bottom:26px}
+.cal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.cal-top h2{margin:0}
+.cal-cur{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);min-width:130px}
+.cal-cur select{padding:10px 12px;border-radius:9px;border:1px solid #3d6086;background:#071426}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin:22px 0 16px}
+.cal-nav h3{margin:0;font-size:20px;font-weight:500}
+.cal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.cal-stats>div{background:#071628aa;border:1px solid #29466a;border-radius:12px;padding:12px 14px}
+.cal-stats span{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+.cal-stats b{font-size:20px;font-weight:600}
+.g{color:var(--ok)!important}.r{color:var(--bad)!important}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.cal-wd{text-align:center;font-size:11px;letter-spacing:1px;color:var(--dim);padding:4px 0}
+.cal-day{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;min-height:92px;padding:10px;border-radius:10px;border:1px solid #2a4566;background:#0a1a2e;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}
+.cal-day:hover{border-color:#5d8fc4;transform:translateY(-1px)}
+.cal-day .d{font-size:13px;color:var(--muted)}
+.cal-day b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.cal-day small{font-size:10.5px;color:var(--dim)}
+.cal-day.pos{background:linear-gradient(160deg,#0f3b33,#0a2420);border-color:#2f8f6f}.cal-day.pos b{color:var(--ok)}
+.cal-day.neg{background:linear-gradient(160deg,#3d1820,#250e13);border-color:#a24a55}.cal-day.neg b{color:var(--bad)}
+.cal-day.flat{background:#1b2533;border-color:#4a5a70}
+.cal-day.today{box-shadow:inset 0 0 0 1px var(--cyan)}
+.cal-day.sel{outline:2px solid var(--cyan);outline-offset:1px}
+.cal-note{margin:16px 0 0}
+.cal-note b{font-weight:600}
+.result-row{align-items:end;background:#071628aa;border:1px dashed #2f5076;border-radius:12px;padding:12px;margin:4px 0 14px}
+@media(max-width:640px){
+  .cal-stats{grid-template-columns:repeat(2,1fr)}
+  .cal-grid{gap:4px}
+  .cal-day{min-height:62px;padding:6px}
+  .cal-day b{font-size:10.5px}
+  .cal-day small{display:none}
+  .cal-wd{font-size:9px}
+}
