@@ -68,17 +68,23 @@
   </main>
 
   <!-- Signed in -->
-  <main id="hub-view" class="page" hidden>
+  <main id="hub-view" class="page hub-layout" hidden>
+    <aside class="hub-side" aria-label="Member Hub sections">
+      <p class="side-label">Your learning workspace</p>
+      <div class="tabs side" role="tablist" aria-orientation="vertical">
+        <button role="tab" aria-selected="true" data-tab="lessons"><i aria-hidden="true">◈</i>Trading lessons</button>
+        <button role="tab" aria-selected="false" data-tab="checklist"><i aria-hidden="true">✓</i>Pre-trade checklist</button>
+        <button role="tab" aria-selected="false" data-tab="review"><i aria-hidden="true">↺</i>After-trade review</button>
+        <button role="tab" aria-selected="false" data-tab="journal"><i aria-hidden="true">▦</i>My journal</button>
+        <button role="tab" aria-selected="false" data-tab="beta" id="beta-tab" class="beta-tab" hidden><i aria-hidden="true">⭐</i>Premium Beta</button>
+      </div>
+      <a class="side-link" href="/market-watch"><i aria-hidden="true">◷</i>Economic events</a>
+      <div class="side-foot"><p class="side-label">◇ Private membership</p><p>Learn first.<br>Trade responsibly.</p></div>
+    </aside>
+    <div class="hub-main">
     <p class="eyebrow">SkyTeam Member Hub</p>
     <h1 id="hello">Welcome back.</h1>
     <p class="muted">Learn the idea, plan the risk, then reflect on the decision. Your journal is private — the SkyTeam team can't see it.</p>
-    <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-tab="lessons">Lessons</button>
-      <button role="tab" aria-selected="false" data-tab="checklist">Pre-trade checklist</button>
-      <button role="tab" aria-selected="false" data-tab="review">After-trade review</button>
-      <button role="tab" aria-selected="false" data-tab="journal">My journal</button>
-      <button role="tab" aria-selected="false" data-tab="beta" id="beta-tab" class="beta-tab" hidden>⭐ Premium Beta</button>
-    </div>
 
     <section data-panel="lessons">
       <div class="lessons">
@@ -148,6 +154,11 @@
             <label>Date<input type="date" name="entryDate" required></label>
             <label>Instrument / symbol<input name="instrument" maxlength="40"></label>
             <label>Session / timezone<input name="session" maxlength="60"></label>
+          </div>
+          <div class="grid3 result-row">
+            <label>Net result after fees <small class="dim">(optional, for your calendar)</small><input type="number" name="net" step="0.01" inputmode="decimal" placeholder="e.g. 25.50 or -12"></label>
+            <label>Trades closed<input type="number" name="trades" min="0" max="500" step="1" inputmode="numeric" placeholder="e.g. 2"></label>
+            <label>Currency<select name="currency" id="review-currency"></select></label>
           </div>
           <label>01 What was my plan?<textarea name="plan" maxlength="2000"></textarea></label>
           <label>02 What did I actually do?<textarea name="actual" maxlength="2000"></textarea></label>
@@ -224,9 +235,29 @@
     </section>
 
     <section data-panel="journal" hidden>
-      <div class="toolbar"><h2 style="margin:0;flex:1">My journal</h2><span class="dim" id="journal-count"></span></div>
+      <div class="card cal-card">
+        <div class="cal-top">
+          <div><p class="eyebrow">Your daily net result</p><h2>A month of decisions.</h2></div>
+          <label class="cal-cur">Account currency<select id="cal-currency"></select></label>
+        </div>
+        <div class="cal-nav">
+          <button class="btn ghost small" id="cal-prev" aria-label="Previous month">←</button>
+          <h3 id="cal-title" aria-live="polite"></h3>
+          <button class="btn ghost small" id="cal-next" aria-label="Next month">→</button>
+        </div>
+        <div class="cal-stats">
+          <div><span>Recorded net</span><b id="cal-net">0.00</b></div>
+          <div><span>Profitable days</span><b id="cal-win">0</b></div>
+          <div><span>Losing days</span><b id="cal-loss">0</b></div>
+          <div><span>Win rate (days)</span><b id="cal-rate">—</b></div>
+        </div>
+        <div class="cal-grid" id="cal-grid" role="grid" aria-label="Daily net result calendar"></div>
+        <p class="dim cal-note">Tap a day to see its entries. <b class="g">Green</b> = positive day after fees, <b class="r">red</b> = negative, grey = breakeven. Results come from the <b>net result</b> you enter in each After-trade review; currencies are never mixed or converted.</p>
+      </div>
+      <div class="toolbar"><h2 style="margin:0;flex:1" id="journal-heading">My journal</h2><button class="btn ghost small" id="cal-all" hidden>Show all entries</button><span class="dim" id="journal-count"></span></div>
       <div class="entries" id="entries"></div>
     </section>
+    </div>
   </main>
 
   <footer class="footer">Educational information only — not financial advice or trade signals. Trading involves risk. © SkyTeam Trading Hub</footer>

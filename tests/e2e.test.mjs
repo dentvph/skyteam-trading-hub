@@ -212,3 +212,18 @@ test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke f
   assert.equal((await owner(`/api/crm/members/${over.id}/beta`, { method: 'POST', body: { on: true } })).status, 200, 'seat freed');
   for (const m of [...extra, over]) await owner(`/api/crm/members/${m.id}/beta`, { method: 'POST', body: { on: false } });
 });
+
+test('journal: after-trade reviews can carry a daily net result for the calendar', async () => {
+  const owner = client(); await signIn(owner, 'team', OWNER);
+  const email = `cal-${run}@example.com`;
+  assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: 'Cal Tester', email, uid: `CAL${run}` } })).status, 200);
+  const m = client(); await signIn(m, 'member', email);
+  const ok = await m('/api/members/journal', { method: 'POST', body: { kind: 'review', entryDate: '2026-11-03', instrument: 'XAUUSD', net: '25.505', trades: '2', currency: 'cad', plan: 'x' } });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal((await m('/api/members/journal', { method: 'POST', body: { kind: 'review', entryDate: '2026-11-04', net: 'abc' } })).status, 400);
+  assert.equal((await m('/api/members/journal', { method: 'POST', body: { kind: 'review', entryDate: '2026-11-04', net: '5', currency: 'XYZ' } })).status, 400);
+  assert.equal((await m('/api/members/journal', { method: 'POST', body: { kind: 'review', entryDate: '2026-11-04', trades: '1.5' } })).status, 400);
+  const { data } = await m('/api/members/journal');
+  const e = data.entries.find(x => x.entry_date === '2026-11-03');
+  assert.equal(e.data.net, 25.51); assert.equal(e.data.trades, 2); assert.equal(e.data.currency, 'CAD');
+});
