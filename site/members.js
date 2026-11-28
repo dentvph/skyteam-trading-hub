@@ -76,11 +76,28 @@
     $$('[role=tab]').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
     $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
     if (name === 'journal') loadJournal();
+    if (name === 'beta') checkTerminal();
   }
   $$('[role=tab]').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
   // ---------- Premium Beta ----------
+  const OFFLINE_TEXT = 'Offline right now. The Smart Terminal runs on Dennis\'s PC during the beta; when that PC, MT5 or the terminal is off or restarting, it can\'t be reached. Try again later (it is usually on during the trading week).';
+  let termOnline = null;
+  async function checkTerminal() {
+    const box = $('#term-status');
+    box.className = 'term-status'; $('#term-status-text').textContent = 'Checking the terminal…';
+    try {
+      const s = await api('/api/members/terminal/status');
+      termOnline = !!s.online;
+      box.className = `term-status ${termOnline ? 'on' : 'off'}`;
+      $('#term-status-text').textContent = !s.configured ? 'The Smart Terminal is being switched on.'
+        : termOnline ? 'Online: the terminal is reachable now.' : OFFLINE_TEXT;
+    } catch { termOnline = null; box.className = 'term-status'; $('#term-status-text').textContent = 'Couldn\'t check the terminal status.'; }
+    return termOnline;
+  }
+  $('#term-status').addEventListener('click', checkTerminal);
   $('#open-terminal').addEventListener('click', async () => {
+    if ((await checkTerminal()) === false) { say($('#beta-msg'), OFFLINE_TEXT); return; }
     const win = window.open('about:blank', '_blank');            // open first, so pop-up blockers allow it
     const done = busy($('#open-terminal'), 'Opening…');
     try {

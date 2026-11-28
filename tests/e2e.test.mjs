@@ -189,6 +189,7 @@ test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke f
   // Not a tester yet: no tab, no hand-off.
   assert.equal((await member('/api/members/me')).data.member.beta, false);
   assert.equal((await member('/api/members/terminal', { method: 'POST', body: {} })).status, 403);
+  assert.equal((await member('/api/members/terminal/status')).status, 403, 'status is for testers only');
 
   // Managers can't hand out seats.
   const jong = client(); await signIn(jong, 'team', 'jong@skyteamtradinghub.com');
@@ -197,6 +198,8 @@ test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke f
   const on = await owner(`/api/crm/members/${a.id}/beta`, { method: 'POST', body: { on: true } });
   assert.equal(on.status, 200, JSON.stringify(on.data));
   assert.equal((await member('/api/members/me')).data.member.beta, true);
+  const st = await member('/api/members/terminal/status');
+  assert.equal(st.status, 200); assert.equal(typeof st.data.online, 'boolean');
   const open = await member('/api/members/terminal', { method: 'POST', body: {} });
   if (process.env.TERMINAL_SSO_SECRET) {
     assert.equal(open.status, 200, JSON.stringify(open.data));

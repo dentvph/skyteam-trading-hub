@@ -176,3 +176,8 @@ input::placeholder,textarea::placeholder{color:#7f97b2}
 .seg span{color:var(--dim);font-size:11px;margin-left:2px}
 .pill.prospect{border-color:#6c5b2a;color:#ffd47a;margin-left:6px}
 td .pill.approved{margin-left:6px}
+/* Premium Beta: terminal online / offline */
+.term-status{display:flex;align-items:flex-start;gap:10px;margin:14px 0 4px;padding:10px 14px;border-radius:10px;border:1px solid #2c4a6c;background:#071628aa;color:var(--muted);font-size:14px;cursor:pointer;line-height:1.5}
+.term-status .dot{width:10px;height:10px;border-radius:50%;background:#7f97b2;flex-shrink:0;margin-top:6px}
+.term-status.on{border-color:#2f8f6f;color:#bff0dc}.term-status.on .dot{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.term-status.off{border-color:#a24a55;color:#ffd0d4}.term-status.off .dot{background:var(--bad);box-shadow:0 0 10px var(--bad)}

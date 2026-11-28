@@ -39,6 +39,26 @@ export async function openTerminal(env: Env, request: Request): Promise<Response
   return json({ url: `${base}/sso?t=${encodeURIComponent(token)}` });
 }
 
+/**
+ * Is the Smart Terminal reachable right now? It runs on Dennis's PC behind a Cloudflare Tunnel, so it is
+ * offline whenever the PC, MT5 or start.bat is off. Checked from Cloudflare (no CORS issues), cached 30 s.
+ */
+let statusCache: { at: number; online: boolean } | null = null;
+export async function terminalStatus(env: Env, request: Request): Promise<Response> {
+  const m = await requireMember(env, request);
+  if (!(await isBeta(env, m.id))) throw new HttpError(403, "The Smart Terminal is for Premium Beta testers only.");
+  const base = terminalUrl(env);
+  if (!base) return json({ online: false, configured: false });
+  if (statusCache && Date.now() - statusCache.at < 30_000) return json({ online: statusCache.online, configured: true });
+  let online = false;
+  try {
+    const r = await fetch(`${base}/health`, { signal: AbortSignal.timeout(4000), headers: { accept: "application/json" } });
+    online = r.ok && ((await r.json().catch(() => ({}))) as { ok?: boolean }).ok === true;
+  } catch { online = false; }
+  statusCache = { at: Date.now(), online };
+  return json({ online, configured: true });
+}
+
 /** Owner only: add or remove a Premium Beta tester (approved members, max BETA_LIMIT). */
 export async function setBeta(env: Env, request: Request, id: number): Promise<Response> {
   const user = await requireTeam(env, request, ["owner"]);
