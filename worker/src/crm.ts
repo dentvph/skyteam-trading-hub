@@ -33,6 +33,8 @@ export async function teamMe(env: Env, request: Request): Promise<Response> {
 
 // ---- Leads ----
 
+const IS_MEMBER = "EXISTS (SELECT 1 FROM members m WHERE m.email = LOWER(leads.email) AND m.status = 'approved')";
+
 function leadFilters(url: URL) {
   const q = (url.searchParams.get("q") || "").trim().slice(0, 100);
   const status = url.searchParams.get("status") || "";
@@ -44,6 +46,10 @@ function leadFilters(url: URL) {
     args.push(like, like, like, like, like);
   }
   if (LEAD_STATUSES.includes(status)) { where.push("status = ?"); args.push(status); }
+  // Prospect / member separator: a contact counts as a member once an APPROVED member has the same email.
+  const kind = url.searchParams.get("kind") || "";
+  if (kind === "prospects") where.push(`NOT ${IS_MEMBER}`);
+  if (kind === "members") where.push(IS_MEMBER);
   return { sql: where.length ? `WHERE ${where.join(" AND ")}` : "", args };
 }
 
@@ -53,14 +59,19 @@ export async function listLeads(env: Env, request: Request): Promise<Response> {
   const { sql, args } = leadFilters(url);
   const page = Math.max(0, Number(url.searchParams.get("page")) || 0);
   const rows = await env.DB.prepare(
-    `SELECT id, name, email, phone, country, city, email_opt_in, sms_opt_in, source, status, notes, created_at, updated_at
+    `SELECT id, name, email, phone, country, city, email_opt_in, sms_opt_in, source, status, notes, created_at, updated_at,
+            ${IS_MEMBER} AS is_member
      FROM leads ${sql} ORDER BY created_at DESC LIMIT 101 OFFSET ${page * 100}`,
   ).bind(...args).all();
   const counts = await env.DB.prepare("SELECT status, COUNT(*) AS n FROM leads GROUP BY status").all<{ status: string; n: number }>();
+  const split = await env.DB.prepare(`SELECT SUM(CASE WHEN ${IS_MEMBER} THEN 1 ELSE 0 END) AS members, COUNT(*) AS total FROM leads`)
+    .first<{ members: number | null; total: number }>();
   return json({
     leads: rows.results.slice(0, 100),
     more: rows.results.length > 100,
     counts: Object.fromEntries(counts.results.map((c) => [c.status, c.n])),
+    members: split?.members ?? 0,
+    prospects: (split?.total ?? 0) - (split?.members ?? 0),
   });
 }
 
@@ -116,10 +127,15 @@ export async function listMembers(env: Env, request: Request): Promise<Response>
   await requireTeam(env, request, [...ALL]);
   const status = new URL(request.url).searchParams.get("status") || "";
   const valid = ["pending", "approved", "rejected", "revoked"].includes(status);
+  // Extra views: beta testers (approved + seat) and new requests from the last 7 days.
+  const where = valid ? "WHERE status = ?1"
+    : status === "beta" ? "WHERE beta = 1 AND status = 'approved'"
+    : status === "new" ? "WHERE created_at >= ?1" : "";
+  const args = valid ? [status] : status === "new" ? [new Date(Date.now() - 7 * 86400_000).toISOString()] : [];
   const rows = await env.DB.prepare(
     `SELECT id, name, email, vt_uid, status, admin_note, created_at, reviewed_at, reviewed_by, beta FROM members
-     ${valid ? "WHERE status = ?1" : ""} ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT 500`,
-  ).bind(...(valid ? [status] : [])).all();
+     ${where} ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT 500`,
+  ).bind(...args).all();
   return json({ members: rows.results, ...(await betaCount(env)) });
 }
 

@@ -57,7 +57,14 @@
   let searchTimer;
   $('#lead-q').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadLeads, 300); });
   $('#lead-status').addEventListener('change', loadLeads);
-  function leadQuery() { const p = new URLSearchParams(); if ($('#lead-q').value.trim()) p.set('q', $('#lead-q').value.trim()); if ($('#lead-status').value) p.set('status', $('#lead-status').value); return p.toString(); }
+  let leadKind = '';
+  function leadQuery() { const p = new URLSearchParams(); if ($('#lead-q').value.trim()) p.set('q', $('#lead-q').value.trim()); if ($('#lead-status').value) p.set('status', $('#lead-status').value); if (leadKind) p.set('kind', leadKind); return p.toString(); }
+  // Prospects (registered on the site, not an approved member yet) vs Members (approved, same email).
+  $$('#lead-kind button').forEach(b => b.addEventListener('click', () => {
+    leadKind = b.dataset.kind;
+    $$('#lead-kind button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    loadLeads();
+  }));
 
   async function loadLeads() {
     const body = $('#lead-rows');
@@ -66,11 +73,12 @@
       $('#export').href = `/api/crm/leads.csv?${leadQuery()}`;
       $('#lead-stats').replaceChildren(...STAGES.map(s => el('span', { textContent: `${s[0].toUpperCase() + s.slice(1)}: ${data.counts[s] || 0}` })));
       $('#lead-more').hidden = !data.more;
+      $('#n-prospects').textContent = data.prospects ?? ''; $('#n-members').textContent = data.members ?? '';
       body.replaceChildren();
       if (!data.leads.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: 'No contacts match.' })));
       for (const l of data.leads) {
         const row = el('tr', { style: 'cursor:pointer' },
-          el('td', {}, el('b', { textContent: l.name }), el('small', { textContent: l.email }), el('small', { textContent: l.phone })),
+          el('td', {}, el('b', { textContent: l.name }), l.is_member ? el('span', { className: 'pill approved', textContent: 'member', title: 'An approved member uses this email' }) : el('span', { className: 'pill prospect', textContent: 'prospect' }), el('small', { textContent: l.email }), el('small', { textContent: l.phone })),
           el('td', { textContent: [l.city, l.country].filter(Boolean).join(', ') }),
           el('td', {}, el('small', { textContent: `Email ${l.email_opt_in ? 'yes' : 'no'} · SMS ${l.sms_opt_in ? 'yes' : 'no'}` })),
           el('td', {}, el('span', { className: `pill ${l.status}`, textContent: l.status })),
@@ -127,7 +135,7 @@
       const pending = members.filter(m => m.status === 'pending').length;
       if (!status) $('#pending-badge').textContent = pending ? `(${pending})` : '';
       body.replaceChildren();
-      if (!members.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: 'No member requests yet.' })));
+      if (!members.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: status === 'beta' ? 'No beta testers yet. Use ⭐ Add to beta on an approved member.' : status === 'new' ? 'No new requests in the last 7 days.' : 'No member requests yet.' })));
       for (const m of members) {
         const actions = el('td');
         if (canEdit()) {

@@ -197,6 +197,16 @@
     }
   });
   // The welcome screen is a browser flow, not authentication or a content-security boundary.
+  // Signed-in members (and the team) never see it: they stay signed in for 30 days (team: 7).
+  async function signedIn() {
+    if (apiOrigin) return false;                                    // GitHub Pages copy has no sessions
+    const check = path => fetch(path, { credentials: 'same-origin', cache: 'no-store' }).then(r => r.ok).catch(() => false);
+    const timeout = new Promise(resolve => setTimeout(() => resolve(false), 2500));
+    return Promise.race([Promise.all([check('/api/members/me'), check('/api/crm/me')]).then(([m, t]) => m || t), timeout]);
+  }
   if (alreadySubmitted()) revealLanding();
-  else openVideo('landing:welcome');
+  else signedIn().then(yes => {
+    if (yes) { remember(); revealLanding(); }
+    else openVideo('landing:welcome');
+  });
 })();

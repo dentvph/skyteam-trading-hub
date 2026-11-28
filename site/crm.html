@@ -49,6 +49,11 @@
 
     <section data-panel="leads">
       <div class="toolbar">
+        <div class="seg" id="lead-kind" role="group" aria-label="Show">
+          <button type="button" data-kind="" aria-pressed="true">All</button>
+          <button type="button" data-kind="prospects" aria-pressed="false">🎯 Prospects <span id="n-prospects"></span></button>
+          <button type="button" data-kind="members" aria-pressed="false">✅ Members <span id="n-members"></span></button>
+        </div>
         <input type="search" id="lead-q" placeholder="Search name, email, phone, country or city">
         <select id="lead-status"><option value="">All stages</option><option value="new">New</option><option value="contacted">Contacted</option><option value="registered">Registered</option><option value="joined">Joined</option><option value="archived">Archived</option></select>
         <a class="btn small ghost" id="export" hidden>Export CSV</a>
@@ -60,7 +65,7 @@
 
     <section data-panel="members" hidden>
       <div class="toolbar">
-        <select id="member-status"><option value="">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="revoked">Revoked</option></select>
+        <select id="member-status"><option value="">All</option><option value="new">🆕 New this week</option><option value="beta">⭐ Beta testers</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="revoked">Revoked</option></select>
         <span class="dim" id="beta-count" style="flex:1;text-align:center"></span>
         <button class="btn small" id="add-member-toggle">+ Add approved member</button>
       </div>

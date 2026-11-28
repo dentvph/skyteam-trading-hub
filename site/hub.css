@@ -167,3 +167,12 @@ input::placeholder,textarea::placeholder{color:#7f97b2}
   .cal-day small{display:none}
   .cal-wd{font-size:9px}
 }
+
+/* CRM: prospect / member separator */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-shrink:0}
+.seg button{background:none;border:0;padding:10px 14px;color:var(--muted);cursor:pointer;font-size:13px;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:#17375a;color:var(--text)}
+.seg span{color:var(--dim);font-size:11px;margin-left:2px}
+.pill.prospect{border-color:#6c5b2a;color:#ffd47a;margin-left:6px}
+td .pill.approved{margin-left:6px}
