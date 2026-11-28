@@ -75,7 +75,9 @@
       $('#lead-more').hidden = !data.more;
       $('#n-prospects').textContent = data.prospects ?? ''; $('#n-members').textContent = data.members ?? '';
       body.replaceChildren();
-      if (!data.leads.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: 'No contacts match.' })));
+      if (!data.leads.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: leadKind === 'members'
+        ? 'No website-form contacts have become members yet. Approved members are listed in the Member requests tab.'
+        : 'No contacts match. Website form sign-ups appear here; member access requests are in the Member requests tab.' })));
       for (const l of data.leads) {
         const row = el('tr', { style: 'cursor:pointer' },
           el('td', {}, el('b', { textContent: l.name }), l.is_member ? el('span', { className: 'pill approved', textContent: 'member', title: 'An approved member uses this email' }) : el('span', { className: 'pill prospect', textContent: 'prospect' }), el('small', { textContent: l.email }), el('small', { textContent: l.phone })),
