@@ -122,7 +122,8 @@
     const body = $('#member-rows');
     try {
       const status = $('#member-status').value;
-      const { members } = await api(`/api/crm/members${status ? `?status=${status}` : ''}`);
+      const { members, betaCount = 0, betaLimit = 10 } = await api(`/api/crm/members${status ? `?status=${status}` : ''}`);
+      $('#beta-count').textContent = `⭐ Premium Beta: ${betaCount} / ${betaLimit} seats used`;
       const pending = members.filter(m => m.status === 'pending').length;
       if (!status) $('#pending-badge').textContent = pending ? `(${pending})` : '';
       body.replaceChildren();
@@ -144,10 +145,18 @@
           if (m.status === 'pending') actions.append(act('reject', 'Reject', 'danger'));
           if (m.status === 'approved') actions.append(act('revoke', 'Revoke', 'danger'));
         }
+        if (isOwner() && m.status === 'approved') {
+          const b = el('button', { className: `btn small ${m.beta ? 'ghost' : 'ok'}`, textContent: m.beta ? 'Remove from beta' : '⭐ Add to beta' });
+          b.addEventListener('click', async () => {
+            if (m.beta && !confirm(`Remove ${m.name} from the Premium Beta?`)) return;
+            try { await api(`/api/crm/members/${m.id}/beta`, { method: 'POST', body: { on: !m.beta } }); loadMembers(); } catch (err) { alert(err.message); }
+          });
+          actions.append(' ', b);
+        }
         body.append(el('tr', {},
           el('td', {}, el('b', { textContent: m.name }), el('small', { textContent: m.email }), m.admin_note ? el('small', { textContent: `Note: ${m.admin_note}` }) : null),
           el('td', { textContent: m.vt_uid }),
-          el('td', {}, el('span', { className: `pill ${m.status}`, textContent: m.status }), m.reviewed_by ? el('small', { textContent: `by ${m.reviewed_by}` }) : null),
+          el('td', {}, el('span', { className: `pill ${m.status}`, textContent: m.status }), m.beta ? el('span', { className: 'pill beta', textContent: '⭐ beta' }) : null, m.reviewed_by ? el('small', { textContent: `by ${m.reviewed_by}` }) : null),
           el('td', {}, el('small', { textContent: when(m.created_at) })),
           actions));
       }

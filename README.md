@@ -7,7 +7,8 @@ The SkyTeam website, Member Hub and team CRM, running on Cloudflare Workers with
 | `/` | Landing page, welcome video, registration popup, education, market brief |
 | `/market-watch` | Official U.S. economic release times (BLS) with plain-language explanations |
 | `/members` | Member sign-in (emailed one-time code), UID access request, lessons, pre-trade checklist, after-trade review, private journal |
-| `/crm` | Team workspace: contacts, member approvals, team access (emailed one-time code) |
+| `/crm` | Team workspace: contacts, member approvals, team access, **⭐ Premium Beta seats** (emailed one-time code) |
+| `/members` → ⭐ Premium Beta | Up to 10 testers open the view-only SKY TEAM Smart Terminal. See [docs/PREMIUM-BETA.md](docs/PREMIUM-BETA.md) |
 
 ## How sign-in works
 
@@ -22,10 +23,11 @@ There are no passwords. Members and team sign in with a 6-digit code emailed thr
 
 - [docs/SETUP.md](docs/SETUP.md): putting this repository on GitHub, secrets, first publish
 - [docs/DOMAIN-SWITCH.md](docs/DOMAIN-SWITCH.md): moving skyteamtradinghub.com from the old ChatGPT site
+- [docs/PREMIUM-BETA.md](docs/PREMIUM-BETA.md): Premium Beta: seats, the Smart Terminal hand-off and the Cloudflare Tunnel
 
 ## Layout
 
-- `site/` — static pages, styles, scripts and images (served directly by Cloudflare)
+- `site/` — static pages, styles, scripts and images (served directly by Cloudflare). `sky3d.js` draws the 3D scenes with three.js (`site/vendor/`, MIT licence); it loads after the page, only where WebGL works, and pauses off-screen
 - `worker/src/` — the API (`/api/*`): registration, member hub, CRM, news feeds
 - `migrations/` — D1 database schema
 - `tests/e2e.test.mjs` — end-to-end tests against a local copy
@@ -40,6 +42,7 @@ GitHub repository secrets:
 - `CLOUDFLARE_API_TOKEN` — Cloudflare account token with Workers Scripts, D1 and Workers Routes edit
 - `CLOUDFLARE_ACCOUNT_ID`
 - `RESEND_API_KEY` — Resend key with sending access (needed for sign-in emails)
+- `TERMINAL_SSO_SECRET` — Premium Beta: the secret shown in the terminal under 📱 → ⭐ Premium Beta (signs the hand-off links)
 
 `SESSION_SECRET` is generated automatically on the first deploy and stored as a Cloudflare secret.
 

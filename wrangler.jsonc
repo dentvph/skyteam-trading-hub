@@ -31,10 +31,13 @@
     "EMAIL_FROM": "SkyTeam Trading Hub <notifications@skyteamtradinghub.com>",
     "EMAIL_REPLY_TO": "support@skyteamtradinghub.com",
     // Extra sites allowed to post registrations (e.g. the GitHub Pages copy).
-    "ALLOWED_ORIGINS": "https://dentvph.github.io"
+    "ALLOWED_ORIGINS": "https://dentvph.github.io",
+    // Premium Beta: where the SKY TEAM Smart Terminal is reachable (Cloudflare Tunnel from Dennis's PC).
+    "TERMINAL_URL": "https://terminal.skyteamtradinghub.com"
   },
   "observability": { "enabled": true }
   // Secrets (set by the deploy workflow, never committed):
   //   RESEND_API_KEY  – sends one-time sign-in codes
   //   SESSION_SECRET  – signs registration tokens
+  //   TERMINAL_SSO_SECRET – signs the Premium Beta hand-off to the Smart Terminal (same value in the terminal)
 }

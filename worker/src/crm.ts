@@ -1,3 +1,4 @@
+import { betaCount } from "./beta";
 import { createSession, endSession, requireTeam, startChallenge, teamRole, verifyChallenge } from "./auth";
 import { Env, HttpError, clientIp, email, json, managerEmails, nowIso, ownerEmails, rateLimit, readJson, str, text } from "./util";
 
@@ -116,10 +117,10 @@ export async function listMembers(env: Env, request: Request): Promise<Response>
   const status = new URL(request.url).searchParams.get("status") || "";
   const valid = ["pending", "approved", "rejected", "revoked"].includes(status);
   const rows = await env.DB.prepare(
-    `SELECT id, name, email, vt_uid, status, admin_note, created_at, reviewed_at, reviewed_by FROM members
+    `SELECT id, name, email, vt_uid, status, admin_note, created_at, reviewed_at, reviewed_by, beta FROM members
      ${valid ? "WHERE status = ?1" : ""} ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT 500`,
   ).bind(...(valid ? [status] : [])).all();
-  return json({ members: rows.results });
+  return json({ members: rows.results, ...(await betaCount(env)) });
 }
 
 export async function reviewMember(env: Env, request: Request, id: number): Promise<Response> {
@@ -130,7 +131,8 @@ export async function reviewMember(env: Env, request: Request, id: number): Prom
   if (!status) throw new HttpError(400, "Unknown action.");
   const note = text(body.note, "Note", 1000);
   const res = await env.DB.prepare(
-    "UPDATE members SET status = ?1, admin_note = ?2, reviewed_at = ?3, reviewed_by = ?4 WHERE id = ?5",
+    // Leaving "approved" also frees the member's Premium Beta seat.
+    "UPDATE members SET status = ?1, admin_note = ?2, reviewed_at = ?3, reviewed_by = ?4, beta = CASE WHEN ?1 = 'approved' THEN beta ELSE 0 END WHERE id = ?5",
   ).bind(status, note, nowIso(), user.email, id).run();
   if (!res.meta.changes) throw new HttpError(404, "Member not found.");
   if (status !== "approved") {

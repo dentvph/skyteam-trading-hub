@@ -79,6 +79,19 @@
   }
   $$('[role=tab]').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
+  // ---------- Premium Beta ----------
+  $('#open-terminal').addEventListener('click', async () => {
+    const win = window.open('about:blank', '_blank');            // open first, so pop-up blockers allow it
+    const done = busy($('#open-terminal'), 'Opening…');
+    try {
+      const { url } = await api('/api/members/terminal', { method: 'POST', body: {} });
+      if (win) { win.opener = null; win.location.href = url; } else location.href = url;
+      say($('#beta-msg'), 'Opened in a new tab. If it says the terminal is offline, it is outside trading hours: try again later.', 'ok');
+    } catch (err) { if (win) win.close(); say($('#beta-msg'), err.message); }
+    finally { done(); }
+  });
+  $$('[data-goto]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); showTab(a.dataset.goto); }));
+
   $('#logout').addEventListener('click', async () => {
     await api('/api/members/logout', { method: 'POST' }).catch(() => {});
     location.href = '/members';
@@ -174,6 +187,8 @@
     try {
       const { member } = await api('/api/members/me');
       $('#hello').textContent = `Welcome back, ${member.name.split(' ')[0]}.`;
+      $('#beta-tab').hidden = !member.beta;
+      if (member.beta && !member.terminalReady) say($('#beta-msg'), 'The Smart Terminal is being switched on. The button will work as soon as it is live.', 'info');
       $('#login-view').hidden = true; $('#hub-view').hidden = false; $('#logout').hidden = false;
       resetForm($('#pretrade-form')); resetForm($('#review-form'));
       showTab('lessons');

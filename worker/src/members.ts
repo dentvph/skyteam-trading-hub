@@ -1,4 +1,5 @@
 import { createSession, endSession, requireMember, startChallenge, verifyChallenge } from "./auth";
+import { betaStatus } from "./beta";
 import { Env, HttpError, clientIp, email, json, nowIso, rateLimit, readJson, str, text } from "./util";
 
 const UID = /^[A-Za-z0-9-]{3,64}$/;
@@ -52,7 +53,7 @@ export const memberLogout = (env: Env, request: Request) => endSession(env, requ
 
 export async function memberMe(env: Env, request: Request): Promise<Response> {
   const m = await requireMember(env, request);
-  return json({ member: { name: m.name, email: m.email, uid: m.vt_uid } });
+  return json({ member: { name: m.name, email: m.email, uid: m.vt_uid, ...(await betaStatus(env, m.id)) } });
 }
 
 // ---- Journal (pre-trade checklist + after-the-decision review) ----

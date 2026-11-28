@@ -77,6 +77,7 @@
       <button role="tab" aria-selected="false" data-tab="checklist">Pre-trade checklist</button>
       <button role="tab" aria-selected="false" data-tab="review">After-trade review</button>
       <button role="tab" aria-selected="false" data-tab="journal">My journal</button>
+      <button role="tab" aria-selected="false" data-tab="beta" id="beta-tab" class="beta-tab" hidden>⭐ Premium Beta</button>
     </div>
 
     <section data-panel="lessons">
@@ -156,6 +157,69 @@
           <p class="dim">A profitable outcome does not prove a good process; a loss still deserves review.</p>
           <button class="btn">Save to my journal</button>
         </form>
+      </div>
+    </section>
+
+    <section data-panel="beta" hidden>
+      <div class="card beta-hero">
+        <p class="eyebrow">⭐ Premium Beta · 10 testers only</p>
+        <h2>SKY TEAM Smart Terminal</h2>
+        <p class="muted">The live chart Dennis trades from: tested entry models, liquidity targets with same-day odds, the pre-session map and the AMD phase. You're one of up to ten people testing it before anyone else.</p>
+        <div class="msg" id="beta-msg" role="alert"></div>
+        <div class="beta-actions">
+          <button class="btn" id="open-terminal">Open Smart Terminal →</button>
+          <span class="dim" id="beta-note">Opens in a new tab. It's live during the trading week while the terminal is online.</span>
+        </div>
+      </div>
+
+      <div class="beta-grid">
+        <div class="card">
+          <h3>What's inside</h3>
+          <ul class="beta-list">
+            <li><b>Live chart</b>: gold (XAUUSD), NASDAQ (NAS100) and BTCUSD, 1m to Daily, in Toronto time.</li>
+            <li><b>Tested entry models only</b>: each timeframe shows just the set-ups that backtested profitably (2025) and held up in 2026.</li>
+            <li><b>🎯 Targets &amp; Bias</b>: buy and sell liquidity targets, why buy / why sell, and how often a target that far away was reached the same day.</li>
+            <li><b>Asia box (AMD)</b>: accumulation, manipulation, distribution, right on the chart.</li>
+            <li><b>OTE, premium / discount, golden zone, daily breakers</b> as visual guides.</li>
+            <li><b>🗺 Session map</b> before Asia, London and New York: trend on every timeframe, liquidity, killzones and USD news.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>How to use it (5 steps)</h3>
+          <ol class="beta-list">
+            <li>Check <a href="/market-watch">Market Watch</a> for news first.</li>
+            <li>Read the <b>🎯 Targets &amp; Bias</b> verdict. <b>⏸ WAIT</b> means accumulation: no entry.</li>
+            <li>Wait for an entry model to turn <b>READY</b>. Guides (📖) are for reading, not entries.</li>
+            <li>Check the <b>Checklist (info)</b> on the card: target at least 1R away, AMD side, draw.</li>
+            <li>Size from your stop (about 1% of your account). Log it in <a href="#" data-goto="checklist">your pre-trade checklist</a>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="beta-grid">
+        <div class="card">
+          <h3>Beta rules</h3>
+          <ul class="beta-list">
+            <li><b>View-only.</b> The terminal never places trades for you, and no one can see your broker account.</li>
+            <li><b>Personal access.</b> Your link is signed for you and expires in 2 minutes. Don't share screenshots of member-only tools publicly.</li>
+            <li><b>Education, not signals.</b> Backtest numbers are past results on historical data, not promises. Trading involves risk of loss.</li>
+            <li><b>Feedback is the deal.</b> Tell us what helped, what confused you and any bug, at least once a week.</li>
+            <li>Seats can be reassigned if a tester is inactive for two weeks.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Links</h3>
+          <ul class="beta-links">
+            <li><a href="mailto:support@skyteamtradinghub.com?subject=Smart%20Terminal%20beta%20feedback">✉️ Send beta feedback / report a bug</a></li>
+            <li><a href="https://www.facebook.com/SkyTeamTradingHub" target="_blank" rel="noopener noreferrer">💬 SkyTeam on Facebook (message us)</a></li>
+            <li><a href="/market-watch">📅 Market Watch: U.S. economic calendar</a></li>
+            <li><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" target="_blank" rel="noopener noreferrer">🏦 Federal Reserve meeting calendar</a></li>
+            <li><a href="https://www.reuters.com/markets/" target="_blank" rel="noopener noreferrer">📰 Reuters market headlines</a></li>
+            <li><a href="https://www.youtube.com/watch?v=v_DsF1eeckA" target="_blank" rel="noopener noreferrer">▶️ Hub overview video</a></li>
+            <li><a href="#" data-goto="lessons">📚 Member lessons</a> · <a href="#" data-goto="journal">📓 My journal</a></li>
+            <li><a href="/#registration">VT Markets account guide</a> <span class="dim">(referral link and regional notices on the home page)</span></li>
+          </ul>
+        </div>
       </div>
     </section>
 

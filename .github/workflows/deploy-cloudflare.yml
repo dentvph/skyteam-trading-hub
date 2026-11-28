@@ -28,7 +28,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Run the site locally and test every flow
         run: |
-          printf 'SESSION_SECRET=%s\nDEV_SHOW_CODES=1\n' "$(openssl rand -hex 32)" > .dev.vars
+          export TERMINAL_SSO_SECRET="$(openssl rand -hex 32)"
+          printf 'SESSION_SECRET=%s\nDEV_SHOW_CODES=1\nTERMINAL_SSO_SECRET=%s\n' "$(openssl rand -hex 32)" "$TERMINAL_SSO_SECRET" > .dev.vars
           npx wrangler d1 migrations apply DB --local
           npx wrangler dev --local --port 8787 --ip 127.0.0.1 > wrangler.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/api/leads/token >/dev/null && break; sleep 1; done
@@ -72,10 +73,16 @@ jobs:
       - name: Set server secrets
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TERMINAL_SSO_SECRET: ${{ secrets.TERMINAL_SSO_SECRET }}
         run: |
           existing=$(npx wrangler secret list --format json)
           if ! echo "$existing" | grep -q '"SESSION_SECRET"'; then
             openssl rand -hex 32 | npx wrangler secret put SESSION_SECRET
+          fi
+          if [ -n "$TERMINAL_SSO_SECRET" ]; then
+            printf '%s' "$TERMINAL_SSO_SECRET" | npx wrangler secret put TERMINAL_SSO_SECRET
+          else
+            echo "::warning::TERMINAL_SSO_SECRET is not set yet, so the Premium Beta 'Open Smart Terminal' button stays off."
           fi
           if [ -n "$RESEND_API_KEY" ]; then
             printf '%s' "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY
