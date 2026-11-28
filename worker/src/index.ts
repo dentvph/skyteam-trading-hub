@@ -22,6 +22,7 @@ const routes: [string, string, Handler][] = [
   ["GET", "/api/members/me", (env, req) => members.memberMe(env, req)],
   ["POST", "/api/members/terminal", (env, req) => beta.openTerminal(env, req)],
   ["GET", "/api/members/terminal/status", (env, req) => beta.terminalStatus(env, req)],
+  ["POST", "/api/terminal/journal", (env, req) => beta.practiceJournal(env, req)],
   ["GET", "/api/members/journal", (env, req) => members.listJournal(env, req)],
   ["POST", "/api/members/journal", (env, req) => members.saveJournal(env, req)],
   ["PUT", "/api/members/journal/:id", (env, req, _c, id) => members.saveJournal(env, req, id)],

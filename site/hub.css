@@ -181,3 +181,4 @@ td .pill.approved{margin-left:6px}
 .term-status .dot{width:10px;height:10px;border-radius:50%;background:#7f97b2;flex-shrink:0;margin-top:6px}
 .term-status.on{border-color:#2f8f6f;color:#bff0dc}.term-status.on .dot{background:var(--ok);box-shadow:0 0 10px var(--ok)}
 .term-status.off{border-color:#a24a55;color:#ffd0d4}.term-status.off .dot{background:var(--bad);box-shadow:0 0 10px var(--bad)}
+.pill.practice{border-color:#a8872f;color:#ffd47a}

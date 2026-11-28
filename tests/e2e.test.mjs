@@ -267,3 +267,26 @@ test('CRM filters: prospects vs members in Contacts, new and beta views in Membe
   const beta = await owner('/api/crm/members?status=beta');
   assert.ok(beta.data.members.every(m => m.beta === 1 && m.status === 'approved'));
 });
+
+test('practice trades from the terminal land in the journal once, signed, as PRACTICE', async () => {
+  const { createHmac } = await import('node:crypto');
+  const secret = process.env.TERMINAL_SSO_SECRET;
+  if (!secret) return;                                   // runs where the worker has the shared secret
+  const owner = await ownerSession();
+  const email = `paper-${run}@example.com`;
+  assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: 'Paper Tester', email, uid: `PAP${run}` } })).status, 200);
+  const id = (await owner('/api/crm/members?status=approved')).data.members.find(m => m.email === email).id;
+  const raw = JSON.stringify({ member_id: String(id), trades: [{ ticket: 1, symbol: 'XAUUSD-STD', side: 'buy', volume: 0.1, open: 4051.66, close: 4056.2, profit: 45.4, reason: 'TP', time_open: 1795700000, time_close: 1795703600 }] });
+  const post = (ts, sig, body = raw) => fetch(`${BASE}/api/terminal/journal`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-sky-ts': ts, 'x-sky-sig': sig }, body });
+  const sign = (ts, body = raw) => createHmac('sha256', secret).update(`${ts}.${body}`).digest('base64url');
+  const now = String(Math.floor(Date.now() / 1000));
+  assert.equal((await post(now, sign(now).replace(/.$/, c => (c === 'A' ? 'B' : 'A')))).status, 401, 'bad signature');
+  const old = String(Math.floor(Date.now() / 1000) - 900);
+  assert.equal((await post(old, sign(old))).status, 401, 'expired');
+  const ok = await post(now, sign(now));
+  assert.equal(ok.status, 200); assert.equal((await ok.json()).stored, 1);
+  assert.equal((await (await post(now, sign(now))).json()).stored, 0, 'retries are not duplicated');
+  const m = client(); await signIn(m, 'member', email);
+  const e = (await m('/api/members/journal')).data.entries.find(x => x.session === 'Practice account');
+  assert.ok(e); assert.equal(e.data.currency, 'PRACTICE'); assert.equal(e.data.net, 45.4); assert.equal(e.data.source, 'practice');
+});
