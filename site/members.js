@@ -76,11 +76,28 @@
     $$('[role=tab]').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
     $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
     if (name === 'journal') loadJournal();
+    if (name === 'beta') checkTerminal();
   }
   $$('[role=tab]').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
   // ---------- Premium Beta ----------
+  const OFFLINE_TEXT = 'Offline right now. The Smart Terminal runs on Dennis\'s PC during the beta; when that PC, MT5 or the terminal is off or restarting, it can\'t be reached. Try again later (it is usually on during the trading week).';
+  let termOnline = null;
+  async function checkTerminal() {
+    const box = $('#term-status');
+    box.className = 'term-status'; $('#term-status-text').textContent = 'Checking the terminal…';
+    try {
+      const s = await api('/api/members/terminal/status');
+      termOnline = !!s.online;
+      box.className = `term-status ${termOnline ? 'on' : 'off'}`;
+      $('#term-status-text').textContent = !s.configured ? 'The Smart Terminal is being switched on.'
+        : termOnline ? 'Online: the terminal is reachable now.' : OFFLINE_TEXT;
+    } catch { termOnline = null; box.className = 'term-status'; $('#term-status-text').textContent = 'Couldn\'t check the terminal status.'; }
+    return termOnline;
+  }
+  $('#term-status').addEventListener('click', checkTerminal);
   $('#open-terminal').addEventListener('click', async () => {
+    if ((await checkTerminal()) === false) { say($('#beta-msg'), OFFLINE_TEXT); return; }
     const win = window.open('about:blank', '_blank');            // open first, so pop-up blockers allow it
     const done = busy($('#open-terminal'), 'Opening…');
     try {
@@ -134,12 +151,14 @@
   const cal = { cur: store.get('sky.currency', 'USD'), month: null, day: null };
   for (const sel of [$('#cal-currency'), $('#review-currency')]) {
     for (const c of CURRENCIES) { const o = document.createElement('option'); o.value = o.textContent = c; sel.append(o); }
-    sel.value = cal.cur;
+    sel.value = CURRENCIES.includes(cal.cur) ? cal.cur : 'USD';
   }
-  $('#cal-currency').addEventListener('change', e => { cal.cur = e.target.value; store.set('sky.currency', cal.cur); $('#review-currency').value = cal.cur; renderCalendar(); });
+  // Practice trades from the Smart Terminal have their own calendar; they never mix with real results.
+  { const o = document.createElement('option'); o.value = 'PRACTICE'; o.textContent = '🎓 Practice (terminal)'; $('#cal-currency').append(o); $('#cal-currency').value = cal.cur; }
+  $('#cal-currency').addEventListener('change', e => { cal.cur = e.target.value; store.set('sky.currency', cal.cur); if (CURRENCIES.includes(cal.cur)) $('#review-currency').value = cal.cur; renderCalendar(); });
   $('#review-currency').addEventListener('change', e => store.set('sky.currency', e.target.value));
   const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  const money = (n, cur) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? ` ${cur}` : '');
+  const money = (n, cur) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? ` ${cur === 'PRACTICE' ? 'practice' : cur}` : '');
   function moveMonth(step) { cal.month = new Date(cal.month.getFullYear(), cal.month.getMonth() + step, 1); cal.day = null; renderCalendar(); renderList(); }
   $('#cal-prev').addEventListener('click', () => moveMonth(-1));
   $('#cal-next').addEventListener('click', () => moveMonth(1));
@@ -204,7 +223,8 @@
         const card = document.createElement('article'); card.className = 'entry';
         const head = document.createElement('header');
         const title = document.createElement('div');
-        const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = e.kind === 'pretrade' ? 'Checklist' : 'Review';
+        const practice = e.data && e.data.source === 'practice';
+        const pill = document.createElement('span'); pill.className = practice ? 'pill practice' : 'pill'; pill.textContent = practice ? '🎓 Practice trade' : e.kind === 'pretrade' ? 'Checklist' : 'Review';
         const h = document.createElement('h3'); h.textContent = `${e.entry_date}${e.instrument ? ' · ' + e.instrument : ''}${e.session ? ' · ' + e.session : ''}`;
         title.append(pill, h);
         const actions = document.createElement('div');
@@ -216,7 +236,7 @@
           await api(`/api/members/journal/${e.id}`, { method: 'DELETE' }).catch(err => alert(err.message));
           loadJournal();
         });
-        actions.append(edit, ' ', del);
+        if (practice) actions.append(del); else actions.append(edit, ' ', del);
         head.append(title, actions);
         const dl = document.createElement('dl');
         if (e.kind === 'pretrade') {
@@ -227,7 +247,7 @@
           dl.append(dt, dd);
         }
         for (const [k, v] of Object.entries(e.data)) {
-          if (k === 'checks' || k === 'currency' || v === '' || v == null) continue;
+          if (k === 'checks' || k === 'currency' || k === 'source' || v === '' || v == null) continue;
           const dt = document.createElement('dt'); dt.textContent = LABELS[k] || k;
           const dd = document.createElement('dd'); dd.textContent = k === 'net' ? money(v, e.data.currency || 'USD') : v;
           if (k === 'net') dd.className = v > 0 ? 'g' : v < 0 ? 'r' : '';
