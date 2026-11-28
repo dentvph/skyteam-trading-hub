@@ -15,19 +15,32 @@ export async function accessRequest(env: Env, request: Request): Promise<Respons
   if (!UID.test(uid)) throw new HttpError(400, "Your UID should only contain letters, numbers or dashes.");
 
   const existing = await env.DB.prepare(
-    "SELECT status FROM members WHERE email = ?1 OR vt_uid = ?2",
-  ).bind(address, uid).all<{ status: string }>();
-  if (existing.results.some((r) => r.status === "approved")) {
-    return json({ ok: true, status: "approved", message: "You're already approved. Use Member sign-in." });
+    "SELECT id, email, vt_uid, status FROM members WHERE email = ?1 OR vt_uid = ?2",
+  ).bind(address, uid).all<{ id: number; email: string; vt_uid: string; status: string }>();
+  const received = { ok: true, status: "received", message: "Thanks! Dennis or Coach Jong will review your UID and referral." };
+  const exact = existing.results.find((r) => r.email === address && r.vt_uid === uid);
+  if (exact) {
+    // Only someone who knows BOTH the email and the UID learns the status.
+    return json(exact.status === "approved"
+      ? { ok: true, status: "approved", message: "You're already approved. Use Member sign-in." }
+      : { ok: true, status: "received", message: "Your request is already with the team. We'll be in touch." });
   }
   if (existing.results.length) {
-    // Already on file; don't create duplicates or reveal which field matched.
-    return json({ ok: true, status: "received", message: "Your request is already with the team. We'll be in touch." });
+    // The email or the UID is already on another member record. Don't reveal anything about that record;
+    // file the request in CRM Contacts so the team can sort it out (wrong email, shared UID, typo...).
+    const clash = existing.results.some((r) => r.vt_uid === uid) ? "UID already registered to another email" : "email already registered with another UID";
+    const now = nowIso();
+    await env.DB.prepare(
+      `INSERT INTO leads (request_id, name, email, phone, country, city, consent_version, consent_at,
+         email_opt_in, sms_opt_in, source, notes, created_at, updated_at)
+       VALUES (?1, ?2, ?3, '', '', NULL, 'member-request', ?4, 0, 0, 'Member access request (needs review)', ?5, ?4, ?4)`,
+    ).bind(`member-req-${crypto.randomUUID()}`, name, address, now, `Member access request: ${clash}. Submitted UID: ${uid}. Check before approving.`).run();
+    return json(received);
   }
   await env.DB.prepare(
     "INSERT INTO members (name, email, vt_uid, status, consent_at, created_at) VALUES (?1, ?2, ?3, 'pending', ?4, ?4)",
   ).bind(name, address, uid, nowIso()).run();
-  return json({ ok: true, status: "received", message: "Thanks! Dennis or Coach Jong will review your UID and referral." });
+  return json(received);
 }
 
 export async function memberAuthRequest(env: Env, request: Request): Promise<Response> {

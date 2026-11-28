@@ -25,6 +25,13 @@ function client() {
   };
 }
 
+// The owner may request only 4 sign-in codes per 15 minutes, so later tests share one owner session.
+let sharedOwner = null;
+async function ownerSession() {
+  if (!sharedOwner) { sharedOwner = client(); await signIn(sharedOwner, 'team', OWNER); }
+  return sharedOwner;
+}
+
 async function signIn(call, kind, identifier) {
   const req = await call(`/api/${kind === 'team' ? 'crm' : 'members'}/auth/request`, { method: 'POST', body: kind === 'team' ? { email: identifier } : { identifier } });
   assert.equal(req.status, 200, JSON.stringify(req.data));
@@ -94,6 +101,16 @@ test('member journey: request → approve in CRM → sign in → journal → rev
   assert.ok(m, 'request visible to CRM');
   assert.equal((await owner(`/api/crm/members/${m.id}`, { method: 'POST', body: { action: 'approve' } })).status, 200);
 
+  // Same UID with a different email must NOT reveal "approved"; it is filed in CRM Contacts for review.
+  const other = client();
+  const clash = await other('/api/members/access-request', { method: 'POST', body: { name: 'Someone Else', email: `other-${run}@example.com`, uid, consent: true, website: '' } });
+  assert.equal(clash.data.status, 'received', 'partial match looks like a normal request');
+  const flagged = await owner(`/api/crm/leads?q=other-${run}`);
+  assert.equal(flagged.data.leads.length, 1); assert.match(flagged.data.leads[0].notes, /UID already registered/);
+  // Both email and UID right → told to sign in.
+  const both = await other('/api/members/access-request', { method: 'POST', body: { name: 'Test Member', email: memberEmail, uid, consent: true, website: '' } });
+  assert.equal(both.data.status, 'approved');
+
   // Sign in with UID; code goes to the approved email.
   await signIn(visitor, 'member', uid);
   const meMember = await visitor('/api/members/me');
@@ -160,7 +177,7 @@ test('owner can add an already-approved member (migration path)', async () => {
 
 test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke frees the seat', async () => {
   const { createHmac } = await import('node:crypto');
-  const owner = client(); await signIn(owner, 'team', OWNER);
+  const owner = await ownerSession();
   const add = async (i) => {
     const email = `beta-${run}-${i}@example.com`;
     assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: `Beta Tester ${i}`, email, uid: `BETA${run}${i}` } })).status, 200);
@@ -214,7 +231,7 @@ test('premium beta: owner-only seats, max 10, signed terminal hand-off, revoke f
 });
 
 test('journal: after-trade reviews can carry a daily net result for the calendar', async () => {
-  const owner = client(); await signIn(owner, 'team', OWNER);
+  const owner = await ownerSession();
   const email = `cal-${run}@example.com`;
   assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: 'Cal Tester', email, uid: `CAL${run}` } })).status, 200);
   const m = client(); await signIn(m, 'member', email);
