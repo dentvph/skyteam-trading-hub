@@ -244,3 +244,23 @@ test('journal: after-trade reviews can carry a daily net result for the calendar
   const e = data.entries.find(x => x.entry_date === '2026-11-03');
   assert.equal(e.data.net, 25.51); assert.equal(e.data.trades, 2); assert.equal(e.data.currency, 'CAD');
 });
+
+test('CRM filters: prospects vs members in Contacts, new and beta views in Member requests', async () => {
+  const owner = await ownerSession();
+  // A contact whose email belongs to an approved member counts as a member; others are prospects.
+  const memberEmail = `sep-${run}@example.com`;
+  assert.equal((await owner('/api/crm/members', { method: 'POST', body: { name: 'Sep Member', email: memberEmail, uid: `SEP${run}` } })).status, 200);
+  const visitor = client();
+  // Same UID, different email → filed in Contacts as a prospect (see access-request rules).
+  await visitor('/api/members/access-request', { method: 'POST', body: { name: 'Sep Prospect', email: `sep-p-${run}@example.com`, uid: `SEP${run}`, consent: true, website: '' } });
+  const all = await owner(`/api/crm/leads?q=sep-p-${run}`);
+  assert.equal(all.data.leads.length, 1); assert.equal(all.data.leads[0].is_member, 0);
+  assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}&kind=prospects`)).data.leads.length, 1);
+  assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}&kind=members`)).data.leads.length, 0);
+  assert.equal(typeof all.data.prospects, 'number'); assert.equal(typeof all.data.members, 'number');
+
+  const fresh = await owner('/api/crm/members?status=new');
+  assert.ok(fresh.data.members.some(m => m.email === memberEmail), 'added today shows under New this week');
+  const beta = await owner('/api/crm/members?status=beta');
+  assert.ok(beta.data.members.every(m => m.beta === 1 && m.status === 'approved'));
+});
