@@ -267,8 +267,14 @@ test('CRM filters: prospects vs members in Contacts, new and beta views in Membe
   const queue = (await owner('/api/crm/members?status=pending')).data.reviews;
   const item = queue.find(r => r.email === `sep-p-${run}@example.com`);
   assert.ok(item, 'clash appears in the review queue');
-  assert.equal((await owner(`/api/crm/leads/${item.id}`, { method: 'PATCH', body: { status: 'archived' } })).status, 200);
-  assert.ok(!(await owner('/api/crm/members')).data.reviews.some(r => r.id === item.id), 'marked done leaves the queue');
+  // Approve from the queue: the clashing UID is refused with a clear reason; a corrected UID makes them a member.
+  const clash = await owner(`/api/crm/leads/${item.id}/approve`, { method: 'POST', body: { uid: `SEP${run}` } });
+  assert.equal(clash.status, 409); assert.match(clash.data.error, /already belongs to/);
+  assert.equal((await owner(`/api/crm/leads/${item.id}/approve`, { method: 'POST', body: { uid: `SEPOK${run}` } })).status, 200);
+  const approved = (await owner('/api/crm/members?status=approved')).data.members.find(m => m.email === `sep-p-${run}@example.com`);
+  assert.ok(approved); assert.equal(approved.vt_uid, `SEPOK${run}`);
+  assert.ok(!(await owner('/api/crm/members')).data.reviews.some(r => r.id === item.id), 'approved request leaves the queue');
+  assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}`)).data.leads[0].status, 'joined');
   // Anti-spam: one email can send 3 requests an hour; validation errors don't count.
   const spam = client();
   const req = (extra = {}) => spam('/api/members/access-request', { method: 'POST', body: { name: 'Spam Test', email: `spam-${run}@example.com`, uid: `SPAM${run}`, consent: true, website: '', ...extra } });

@@ -114,7 +114,9 @@
       });
       actions.append(' ', del);
     }
-    row.after(el('tr', { className: 'editor open' }, el('td', { colSpan: 5 }, msg,
+    const approve = editable && l.source === REVIEW_SOURCE && !l.is_member && l.status !== 'joined'
+      ? el('div', { className: 'approve-wrap' }, el('b', { textContent: 'Member access request' }), approveForm(l, () => { loadLeads(); })) : null;
+    row.after(el('tr', { className: 'editor open' }, el('td', { colSpan: 5 }, msg, approve,
       el('div', { className: 'rowedit' }, el('label', {}, 'Stage', select), el('label', {}, 'Notes', notes), actions))));
   }
 
@@ -182,19 +184,40 @@
     box.replaceChildren();
     if (!reviews.length) return;
     box.append(el('h3', { textContent: `⚠ ${reviews.length} request${reviews.length > 1 ? 's' : ''} need${reviews.length > 1 ? '' : 's'} a manual check` }),
-      el('p', { className: 'dim', textContent: 'The email or UID is already on another member. Check the details, fix or add the member, then mark it done.' }));
+      el('p', { className: 'dim', textContent: 'The email or UID is already on another member. Check the UID, then Approve (it becomes a member) or Dismiss.' }));
     for (const r of reviews) {
       const row = el('div', { className: 'review-row' },
         el('div', {}, el('b', { textContent: r.name }), el('small', { textContent: r.email }), el('small', { textContent: r.notes || '' }), el('small', { textContent: when(r.created_at) })));
-      if (canEdit()) {
-        const b = el('button', { className: 'btn small ghost', textContent: 'Mark done' });
-        b.addEventListener('click', async () => {
-          try { await api(`/api/crm/leads/${r.id}`, { method: 'PATCH', body: { status: 'archived', notes: `${r.notes || ''} [Reviewed]` } }); loadMembers(); } catch (err) { alert(err.message); }
-        });
-        row.append(b);
-      }
       box.append(row);
+      if (canEdit()) {
+        const approve = el('button', { className: 'btn small ok', textContent: 'Approve…' });
+        const dismiss = el('button', { className: 'btn small ghost', textContent: 'Dismiss', title: 'Not a member: archive this request' });
+        approve.addEventListener('click', () => { if (!row.nextElementSibling?.classList.contains('approve-form')) row.after(approveForm(r, () => { loadMembers(); })); });
+        dismiss.addEventListener('click', async () => {
+          if (!confirm(`Dismiss ${r.name}'s request? It stays in Contacts as Archived and you can still approve it from there.`)) return;
+          try { await api(`/api/crm/leads/${r.id}`, { method: 'PATCH', body: { status: 'archived', notes: `${r.notes || ''} [Dismissed]` } }); loadMembers(); } catch (err) { alert(err.message); }
+        });
+        row.append(el('div', { className: 'review-actions' }, approve, ' ', dismiss));
+      }
     }
+  }
+
+  // Approve a "needs review" access request: confirm or correct the UID, then it becomes an approved member.
+  const REVIEW_SOURCE = 'Member access request (needs review)';
+  const submittedUid = notes => ((notes || '').match(/Submitted UID: ([A-Za-z0-9-]+)/) || [])[1] || '';
+  function approveForm(l, onDone) {
+    const uid = el('input', { value: submittedUid(l.notes), placeholder: 'VT Markets UID', maxLength: 64 });
+    const msg = el('div', { className: 'msg', role: 'alert' });
+    const go = el('button', { className: 'btn small ok', textContent: 'Approve as member' });
+    go.addEventListener('click', async e => {
+      e.stopPropagation();
+      const done = busy(go, 'Approving…');
+      try { await api(`/api/crm/leads/${l.id}/approve`, { method: 'POST', body: { uid: uid.value.trim() } }); done(); onDone(); }
+      catch (err) { done(); say(msg, err.message); }
+    });
+    return el('div', { className: 'approve-form', onclick: e => e.stopPropagation() },
+      el('small', { textContent: 'Check the UID against VT Markets (fix it if they typed it wrong), then approve. They can sign in to the Member Hub right away.' }),
+      el('div', { className: 'approve-row' }, uid, go), msg);
   }
 
   // ---------- Team ----------

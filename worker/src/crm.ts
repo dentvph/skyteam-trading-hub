@@ -139,7 +139,7 @@ export async function listMembers(env: Env, request: Request): Promise<Response>
   // Requests whose email or UID clashed with an existing member are filed as Contacts; show them here too.
   const reviews = await env.DB.prepare(
     `SELECT id, name, email, notes, created_at FROM leads
-     WHERE source = 'Member access request (needs review)' AND status != 'archived' ORDER BY created_at DESC LIMIT 50`,
+     WHERE source = 'Member access request (needs review)' AND status NOT IN ('archived', 'joined') ORDER BY created_at DESC LIMIT 50`,
   ).all();
   return json({ members: rows.results, reviews: reviews.results, ...(await betaCount(env)) });
 }
@@ -179,6 +179,36 @@ export async function addMember(env: Env, request: Request): Promise<Response> {
   } catch {
     throw new HttpError(409, "That email or UID is already on file. Find it in the list and approve it there.");
   }
+  return json({ ok: true });
+}
+
+/** Approve a member access request that was filed for review (email or UID clashed with another member).
+ *  The team confirms or corrects the UID; the contact is then marked Joined. */
+export async function approveLead(env: Env, request: Request, id: number): Promise<Response> {
+  const user = await requireTeam(env, request, [...EDITORS]);
+  const body = await readJson(request);
+  const lead = await env.DB.prepare("SELECT id, name, email, notes FROM leads WHERE id = ?1").bind(id).first<{ id: number; name: string; email: string; notes: string }>();
+  if (!lead) throw new HttpError(404, "Contact not found.");
+  const uid = str(body.uid, "VT Markets UID", { min: 3, max: 64, required: true });
+  if (!/^[A-Za-z0-9-]{3,64}$/.test(uid)) throw new HttpError(400, "The UID should only contain letters, numbers or dashes.");
+  const address = email(lead.email);
+  const taken = await env.DB.prepare("SELECT email, vt_uid, status FROM members WHERE email = ?1 OR vt_uid = ?2")
+    .bind(address, uid).all<{ email: string; vt_uid: string; status: string }>();
+  for (const m of taken.results) {
+    if (m.vt_uid === uid && m.email !== address)
+      throw new HttpError(409, `UID ${uid} already belongs to ${m.email} (${m.status}). Check which person really owns it: fix or revoke that member first, or enter the correct UID.`);
+    if (m.email === address)
+      throw new HttpError(409, `${address} is already a member (${m.status}) with UID ${m.vt_uid}. Approve that record in the list instead.`);
+  }
+  const now = nowIso();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO members (name, email, vt_uid, status, admin_note, consent_at, created_at, reviewed_at, reviewed_by)
+       VALUES (?1, ?2, ?3, 'approved', 'Approved from a review request', ?4, ?4, ?4, ?5)`,
+    ).bind(lead.name, address, uid, now, user.email),
+    env.DB.prepare("UPDATE leads SET status = 'joined', notes = ?1, updated_at = ?2 WHERE id = ?3")
+      .bind(`${lead.notes || ""} [Approved as member with UID ${uid} by ${user.email}]`.trim(), now, id),
+  ]);
   return json({ ok: true });
 }
 
