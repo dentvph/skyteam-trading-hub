@@ -136,7 +136,12 @@ export async function listMembers(env: Env, request: Request): Promise<Response>
     `SELECT id, name, email, vt_uid, status, admin_note, created_at, reviewed_at, reviewed_by, beta FROM members
      ${where} ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT 500`,
   ).bind(...args).all();
-  return json({ members: rows.results, ...(await betaCount(env)) });
+  // Requests whose email or UID clashed with an existing member are filed as Contacts; show them here too.
+  const reviews = await env.DB.prepare(
+    `SELECT id, name, email, notes, created_at FROM leads
+     WHERE source = 'Member access request (needs review)' AND status != 'archived' ORDER BY created_at DESC LIMIT 50`,
+  ).all();
+  return json({ members: rows.results, reviews: reviews.results, ...(await betaCount(env)) });
 }
 
 export async function reviewMember(env: Env, request: Request, id: number): Promise<Response> {

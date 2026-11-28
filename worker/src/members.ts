@@ -1,18 +1,29 @@
-import { createSession, endSession, requireMember, startChallenge, verifyChallenge } from "./auth";
+import { createSession, endSession, requireMember, sessionSubject, startChallenge, verifyChallenge } from "./auth";
 import { betaStatus } from "./beta";
 import { Env, HttpError, clientIp, email, json, nowIso, rateLimit, readJson, str, text } from "./util";
 
 const UID = /^[A-Za-z0-9-]{3,64}$/;
 
 export async function accessRequest(env: Env, request: Request): Promise<Response> {
-  await rateLimit(env, `access:${clientIp(request)}`, 5, 3600);
   const body = await readJson(request);
-  if (typeof body.website === "string" && body.website.trim()) return json({ ok: true });
+  if (typeof body.website === "string" && body.website.trim()) return json({ ok: true });   // honeypot: bots fill it
   if (body.consent !== true) throw new HttpError(400, "Please confirm the consent box.");
   const name = str(body.name, "Name", { min: 2, max: 120, required: true });
   const address = email(body.email);
   const uid = str(body.uid, "VT Markets UID", { min: 3, max: 64, required: true });
   if (!UID.test(uid)) throw new HttpError(400, "Your UID should only contain letters, numbers or dashes.");
+  // Anti-spam: only complete requests count. 10 per hour from one connection, 3 per hour for one email.
+  // The team (signed in to the CRM in the same browser) can test without hitting the connection limit.
+  const team = await sessionSubject(env, request, "team").catch(() => null);
+  try {
+    if (!team) await rateLimit(env, `access:${clientIp(request)}`, 10, 3600);
+    await rateLimit(env, `access-email:${address}`, 3, 3600);
+  } catch (err) {
+    if (err instanceof HttpError && err.status === 429) {
+      throw new HttpError(429, "We already have several requests from you. Please wait about an hour before sending another; the team will review the one you sent.");
+    }
+    throw err;
+  }
 
   const existing = await env.DB.prepare(
     "SELECT id, email, vt_uid, status FROM members WHERE email = ?1 OR vt_uid = ?2",
@@ -30,11 +41,17 @@ export async function accessRequest(env: Env, request: Request): Promise<Respons
     // file the request in CRM Contacts so the team can sort it out (wrong email, shared UID, typo...).
     const clash = existing.results.some((r) => r.vt_uid === uid) ? "UID already registered to another email" : "email already registered with another UID";
     const now = nowIso();
+    const note = `Member access request: ${clash}. Submitted UID: ${uid}. Check before approving.`;
+    // A resubmission of the same request (same email + UID) is not filed twice.
+    const dup = await env.DB.prepare(
+      "SELECT id FROM leads WHERE source = 'Member access request (needs review)' AND email = ?1 AND notes LIKE ?2 AND status != 'archived'",
+    ).bind(address, `%Submitted UID: ${uid}.%`).first();
+    if (dup) return json(received);
     await env.DB.prepare(
       `INSERT INTO leads (request_id, name, email, phone, country, city, consent_version, consent_at,
          email_opt_in, sms_opt_in, source, notes, created_at, updated_at)
        VALUES (?1, ?2, ?3, '', '', NULL, 'member-request', ?4, 0, 0, 'Member access request (needs review)', ?5, ?4, ?4)`,
-    ).bind(`member-req-${crypto.randomUUID()}`, name, address, now, `Member access request: ${clash}. Submitted UID: ${uid}. Check before approving.`).run();
+    ).bind(`member-req-${crypto.randomUUID()}`, name, address, now, note).run();
     return json(received);
   }
   await env.DB.prepare(

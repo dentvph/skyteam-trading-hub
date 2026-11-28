@@ -51,8 +51,8 @@
       <div class="toolbar">
         <div class="seg" id="lead-kind" role="group" aria-label="Show">
           <button type="button" data-kind="" aria-pressed="true">All</button>
-          <button type="button" data-kind="prospects" aria-pressed="false">🎯 Prospects <span id="n-prospects"></span></button>
-          <button type="button" data-kind="members" aria-pressed="false">✅ Members <span id="n-members"></span></button>
+          <button type="button" data-kind="prospects" aria-pressed="false" title="Contacts who are not approved members yet">🎯 Prospects <span id="n-prospects"></span></button>
+          <button type="button" data-kind="members" aria-pressed="false" title="Contacts (website form sign-ups) who later became approved members. All approved members are in the Member requests tab.">✅ Joined as members <span id="n-members"></span></button>
         </div>
         <input type="search" id="lead-q" placeholder="Search name, email, phone, country or city">
         <select id="lead-status"><option value="">All stages</option><option value="new">New</option><option value="contacted">Contacted</option><option value="registered">Registered</option><option value="joined">Joined</option><option value="archived">Archived</option></select>
@@ -69,6 +69,7 @@
         <span class="dim" id="beta-count" style="flex:1;text-align:center"></span>
         <button class="btn small" id="add-member-toggle">+ Add approved member</button>
       </div>
+      <div id="review-box" class="card review-box" hidden></div>
       <form id="add-member" class="card" hidden style="margin-bottom:18px">
         <h3>Add an approved member</h3>
         <p class="dim">For members you've already verified (for example, moving them over from the old site).</p>

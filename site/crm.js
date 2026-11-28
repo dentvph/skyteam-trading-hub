@@ -75,7 +75,9 @@
       $('#lead-more').hidden = !data.more;
       $('#n-prospects').textContent = data.prospects ?? ''; $('#n-members').textContent = data.members ?? '';
       body.replaceChildren();
-      if (!data.leads.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: 'No contacts match.' })));
+      if (!data.leads.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: leadKind === 'members'
+        ? 'No website-form contacts have become members yet. Approved members are listed in the Member requests tab.'
+        : 'No contacts match. Website form sign-ups appear here; member access requests are in the Member requests tab.' })));
       for (const l of data.leads) {
         const row = el('tr', { style: 'cursor:pointer' },
           el('td', {}, el('b', { textContent: l.name }), l.is_member ? el('span', { className: 'pill approved', textContent: 'member', title: 'An approved member uses this email' }) : el('span', { className: 'pill prospect', textContent: 'prospect' }), el('small', { textContent: l.email }), el('small', { textContent: l.phone })),
@@ -130,10 +132,11 @@
     const body = $('#member-rows');
     try {
       const status = $('#member-status').value;
-      const { members, betaCount = 0, betaLimit = 10 } = await api(`/api/crm/members${status ? `?status=${status}` : ''}`);
+      const { members, reviews = [], betaCount = 0, betaLimit = 10 } = await api(`/api/crm/members${status ? `?status=${status}` : ''}`);
       $('#beta-count').textContent = `⭐ Premium Beta: ${betaCount} / ${betaLimit} seats used`;
       const pending = members.filter(m => m.status === 'pending').length;
-      if (!status) $('#pending-badge').textContent = pending ? `(${pending})` : '';
+      if (!status) $('#pending-badge').textContent = pending + reviews.length ? `(${pending + reviews.length})` : '';
+      renderReviews(reviews);
       body.replaceChildren();
       if (!members.length) body.append(el('tr', {}, el('td', { colSpan: 5, className: 'empty', textContent: status === 'beta' ? 'No beta testers yet. Use ⭐ Add to beta on an approved member.' : status === 'new' ? 'No new requests in the last 7 days.' : 'No member requests yet.' })));
       for (const m of members) {
@@ -171,6 +174,29 @@
     } catch (err) { body.replaceChildren(el('tr', {}, el('td', { colSpan: 5 }, el('p', { className: 'msg error', textContent: err.message })))); }
   }
 
+  // Requests that clashed with an existing member (same email or same UID). They can't be approved from
+  // here as-is: fix the member record or add them with the right details, then mark the request done.
+  function renderReviews(reviews) {
+    const box = $('#review-box');
+    box.hidden = !reviews.length;
+    box.replaceChildren();
+    if (!reviews.length) return;
+    box.append(el('h3', { textContent: `⚠ ${reviews.length} request${reviews.length > 1 ? 's' : ''} need${reviews.length > 1 ? '' : 's'} a manual check` }),
+      el('p', { className: 'dim', textContent: 'The email or UID is already on another member. Check the details, fix or add the member, then mark it done.' }));
+    for (const r of reviews) {
+      const row = el('div', { className: 'review-row' },
+        el('div', {}, el('b', { textContent: r.name }), el('small', { textContent: r.email }), el('small', { textContent: r.notes || '' }), el('small', { textContent: when(r.created_at) })));
+      if (canEdit()) {
+        const b = el('button', { className: 'btn small ghost', textContent: 'Mark done' });
+        b.addEventListener('click', async () => {
+          try { await api(`/api/crm/leads/${r.id}`, { method: 'PATCH', body: { status: 'archived', notes: `${r.notes || ''} [Reviewed]` } }); loadMembers(); } catch (err) { alert(err.message); }
+        });
+        row.append(b);
+      }
+      box.append(row);
+    }
+  }
+
   // ---------- Team ----------
   $('#team-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -203,7 +229,7 @@
       $('#export').hidden = !isOwner();
       $('#add-member-toggle').hidden = !canEdit();
       showTab('leads');
-      api('/api/crm/members?status=pending').then(r => { $('#pending-badge').textContent = r.members.length ? `(${r.members.length})` : ''; }).catch(() => {});
+      api('/api/crm/members?status=pending').then(r => { const n = r.members.length + (r.reviews || []).length; $('#pending-badge').textContent = n ? `(${n})` : ''; }).catch(() => {});
     } catch { showLogin(); }
   }
   boot();

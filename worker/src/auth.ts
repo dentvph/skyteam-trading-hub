@@ -83,7 +83,7 @@ export async function endSession(env: Env, request: Request, kind: Kind): Promis
   return json({ ok: true }, 200, { "set-cookie": cookie(COOKIE[kind], "", 0, secure) });
 }
 
-async function sessionSubject(env: Env, request: Request, kind: Kind): Promise<string | null> {
+export async function sessionSubject(env: Env, request: Request, kind: Kind): Promise<string | null> {
   const token = getCookie(request, COOKIE[kind]);
   if (!token || token.length > 100) return null;
   const row = await env.DB.prepare(

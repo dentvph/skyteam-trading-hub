@@ -182,3 +182,8 @@ td .pill.approved{margin-left:6px}
 .term-status.on{border-color:#2f8f6f;color:#bff0dc}.term-status.on .dot{background:var(--ok);box-shadow:0 0 10px var(--ok)}
 .term-status.off{border-color:#a24a55;color:#ffd0d4}.term-status.off .dot{background:var(--bad);box-shadow:0 0 10px var(--bad)}
 .pill.practice{border-color:#a8872f;color:#ffd47a}
+/* CRM: access requests that need a manual check */
+.review-box{border-color:#8a6a2a;margin-bottom:18px}
+.review-box h3{color:#ffd47a;margin:0 0 4px}
+.review-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.review-row small{display:block;color:var(--muted)}

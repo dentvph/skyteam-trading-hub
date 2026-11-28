@@ -261,6 +261,21 @@ test('CRM filters: prospects vs members in Contacts, new and beta views in Membe
   assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}&kind=prospects`)).data.leads.length, 1);
   assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}&kind=members`)).data.leads.length, 0);
   assert.equal(typeof all.data.prospects, 'number'); assert.equal(typeof all.data.members, 'number');
+  // The clash also shows in Member requests (needs review), and resubmitting doesn't file it twice.
+  await visitor('/api/members/access-request', { method: 'POST', body: { name: 'Sep Prospect', email: `sep-p-${run}@example.com`, uid: `SEP${run}`, consent: true, website: '' } });
+  assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}`)).data.leads.length, 1, 'resubmit is not duplicated');
+  const queue = (await owner('/api/crm/members?status=pending')).data.reviews;
+  const item = queue.find(r => r.email === `sep-p-${run}@example.com`);
+  assert.ok(item, 'clash appears in the review queue');
+  assert.equal((await owner(`/api/crm/leads/${item.id}`, { method: 'PATCH', body: { status: 'archived' } })).status, 200);
+  assert.ok(!(await owner('/api/crm/members')).data.reviews.some(r => r.id === item.id), 'marked done leaves the queue');
+  // Anti-spam: one email can send 3 requests an hour; validation errors don't count.
+  const spam = client();
+  const req = (extra = {}) => spam('/api/members/access-request', { method: 'POST', body: { name: 'Spam Test', email: `spam-${run}@example.com`, uid: `SPAM${run}`, consent: true, website: '', ...extra } });
+  assert.equal((await req({ consent: false })).status, 400);
+  for (let i = 0; i < 3; i++) assert.equal((await req()).status, 200);
+  const blocked = await req();
+  assert.equal(blocked.status, 429); assert.match(blocked.data.error, /wait about an hour/);
 
   const fresh = await owner('/api/crm/members?status=new');
   assert.ok(fresh.data.members.some(m => m.email === memberEmail), 'added today shows under New this week');
