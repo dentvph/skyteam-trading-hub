@@ -38,6 +38,7 @@ const routes: [string, string, Handler][] = [
   ["DELETE", "/api/crm/leads/:id", (env, req, _c, id) => crm.deleteLead(env, req, id)],
   ["GET", "/api/crm/members", (env, req) => crm.listMembers(env, req)],
   ["POST", "/api/crm/members", (env, req) => crm.addMember(env, req)],
+  ["POST", "/api/crm/leads/:id/approve", (env, req, _c, id) => crm.approveLead(env, req, id)],
   ["POST", "/api/crm/members/:id", (env, req, _c, id) => crm.reviewMember(env, req, id)],
   ["POST", "/api/crm/members/:id/beta", (env, req, _c, id) => beta.setBeta(env, req, id)],
   ["GET", "/api/crm/team", (env, req) => crm.listTeam(env, req)],

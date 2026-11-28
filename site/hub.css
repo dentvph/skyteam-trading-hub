@@ -187,3 +187,9 @@ td .pill.approved{margin-left:6px}
 .review-box h3{color:#ffd47a;margin:0 0 4px}
 .review-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
 .review-row small{display:block;color:var(--muted)}
+.review-actions{display:flex;gap:6px;flex-shrink:0}
+.approve-form{padding:8px 0 12px}
+.approve-form small{display:block;color:var(--muted);margin-bottom:6px}
+.approve-row{display:flex;gap:8px;align-items:center}
+.approve-row input{max-width:220px}
+.approve-wrap{border:1px solid #2f8f6f;border-radius:10px;padding:10px 14px;margin-bottom:12px}
