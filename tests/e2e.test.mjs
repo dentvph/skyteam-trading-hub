@@ -275,6 +275,12 @@ test('CRM filters: prospects vs members in Contacts, new and beta views in Membe
   assert.ok(approved); assert.equal(approved.vt_uid, `SEPOK${run}`);
   assert.ok(!(await owner('/api/crm/members')).data.reviews.some(r => r.id === item.id), 'approved request leaves the queue');
   assert.equal((await owner(`/api/crm/leads?q=sep-p-${run}`)).data.leads[0].status, 'joined');
+  // A plain website-form contact can be given member access with a UID.
+  const formLead = (await owner(`/api/crm/leads?kind=prospects`)).data.leads.find(l => l.source !== 'Member access request (needs review)' && !l.is_member);
+  if (formLead) {
+    assert.equal((await owner(`/api/crm/leads/${formLead.id}/approve`, { method: 'POST', body: { uid: `FORM${run}` } })).status, 200);
+    assert.ok((await owner('/api/crm/members?status=approved')).data.members.some(m => m.vt_uid === `FORM${run}`));
+  }
   // Anti-spam: one email can send 3 requests an hour; validation errors don't count.
   const spam = client();
   const req = (extra = {}) => spam('/api/members/access-request', { method: 'POST', body: { name: 'Spam Test', email: `spam-${run}@example.com`, uid: `SPAM${run}`, consent: true, website: '', ...extra } });

@@ -114,8 +114,10 @@
       });
       actions.append(' ', del);
     }
-    const approve = editable && l.source === REVIEW_SOURCE && !l.is_member && l.status !== 'joined'
-      ? el('div', { className: 'approve-wrap' }, el('b', { textContent: 'Member access request' }), approveForm(l, () => { loadLeads(); })) : null;
+    // Any contact who isn't a member yet can be given member access once you have their VT Markets UID.
+    const approve = editable && !l.is_member
+      ? el('div', { className: 'approve-wrap' }, el('b', { textContent: l.source === REVIEW_SOURCE ? 'Member access request' : 'Give member access' }),
+          approveForm(l, () => { loadLeads(); })) : null;
     row.after(el('tr', { className: 'editor open' }, el('td', { colSpan: 5 }, msg, approve,
       el('div', { className: 'rowedit' }, el('label', {}, 'Stage', select), el('label', {}, 'Notes', notes), actions))));
   }
@@ -216,7 +218,9 @@
       catch (err) { done(); say(msg, err.message); }
     });
     return el('div', { className: 'approve-form', onclick: e => e.stopPropagation() },
-      el('small', { textContent: 'Check the UID against VT Markets (fix it if they typed it wrong), then approve. They can sign in to the Member Hub right away.' }),
+      el('small', { textContent: submittedUid(l.notes)
+        ? 'Check the UID against VT Markets (fix it if they typed it wrong), then approve. They can sign in to the Member Hub right away.'
+        : 'Enter their VT Markets UID (check it in your VT Markets referral list), then approve. They sign in to the Member Hub with this email and a code.' }),
       el('div', { className: 'approve-row' }, uid, go), msg);
   }
 
